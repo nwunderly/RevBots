@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 
 from discord.ext import commands
 
-from bots import evalbot, bulbe, marvin, revbot
+from bots import evalbot, bulbe, marvin, revbot, juan
 from utils import checks
 from authentication import authentication
 from utils.utility import setup_logger, module_logger
@@ -83,6 +83,8 @@ def start_bot(name, use_socket=True):
         bot = bulbe.Bulbe(name=name, logger=logger, use_socket=use_socket)
     elif classname == 'evalbot.EvalBot':
         bot = evalbot.EvalBot()
+    elif classname == 'juan.Juandissimo':
+        bot = juan.Juandissomo(logger)
     else:
         logger.error("No class found. Closing.")
         exit(0)

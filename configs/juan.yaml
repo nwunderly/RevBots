@@ -1,0 +1,33 @@
+
+name: juan
+version: 2.0.0
+prefix: ">"
+
+#table: Juan
+
+cogs: []
+
+perms:  # initial idea for permissions structure
+  docs:
+    - unrestricted: this and owner return True for all checks
+    - systemAdmin: exclusively bot management related stuff
+    - serverAdmin: moderation stuff and server management stuff
+    - serverMod: moderation related stuff
+    - juanDev: someone with dev access to the bot
+
+  204414611578028034: unrestricted  # nwunder
+  576206861431210014: guildAdmin   # administrator role
+  582328137363488769: guildMod     # moderator role
+
+
+guild: 576168356823040010
+
+channels:
+  - 0
+
+roles:
+  - 0
+
+
+
+

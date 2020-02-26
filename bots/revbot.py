@@ -89,6 +89,7 @@ class RevBot(commands.Bot):
         self._default_prefix = '__'
         command_prefix = command_prefix if command_prefix else self._default_prefix
         super().__init__(command_prefix, **kwargs)
+        self._revbot_version = '1.0.0'
         self._name = name
         self._use_socket = use_socket
         self._port = port
