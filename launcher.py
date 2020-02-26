@@ -1,17 +1,10 @@
-import os
 import yaml
-import importlib
 import logging
 from argparse import ArgumentParser
 
-import discord
 from discord.ext import commands
 
-import revbot
-import bulbe
-import marvin
-import evalbot
-import revbot
+from bots import evalbot, bulbe, marvin, revbot
 from utils import checks
 from authentication import authentication
 from utils.utility import setup_logger, module_logger

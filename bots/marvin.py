@@ -5,16 +5,14 @@ import sys
 import asyncio
 import time
 import datetime
-import subprocess
 import psutil
 
-from asyncio import coroutines
 from asyncio import events
 from asyncio import tasks
 
 # custom imports
 from authentication import authentication
-from evalbot import EvalBot
+from bots.evalbot import EvalBot
 
 # todo
 #   use psutil to try to get process
