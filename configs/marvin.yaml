@@ -1,0 +1,11 @@
+
+launcher:
+  default: revbot.RevBot
+
+  bulbe: bulbe.Bulbe
+  kippy: bulbe.Bulbe
+  juan: juan.Juandissimo
+  clippy: revbot.RevBot
+
+py files:
+  honk: honk.py
