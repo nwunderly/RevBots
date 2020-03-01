@@ -80,11 +80,12 @@ def start_bot(name, use_socket=True):
     if classname == 'revbot.RevBot':
         bot = revbot.RevBot(command_prefix='__', name=name, logger=logger)
     elif classname == 'bulbe.Bulbe':
-        bot = bulbe.Bulbe(name=name, logger=logger, use_socket=use_socket)
+        bot = bulbe.Bulbe(name=name, logger=logger, use_socket=use_socket, close_on_connection_lost=True)
+        # TODO: close_on_connection_lost command line argument
     elif classname == 'evalbot.EvalBot':
         bot = evalbot.EvalBot()
     elif classname == 'juan.Juandissimo':
-        bot = juan.Juandissomo(logger)
+        bot = juan.Juandissimo(logger)
     else:
         logger.error("No class found. Closing.")
         exit(0)

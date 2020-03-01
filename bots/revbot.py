@@ -9,13 +9,11 @@ import signal
 import time
 import asyncio
 import datetime
+import psutil
 import traceback
 
 # custom imports
 from utils.utility import setup_logger
-
-# TODO:
-#   comment code
 
 
 class Connection:
@@ -27,6 +25,7 @@ class Connection:
         self._reader = reader  # asyncio streams. handled automatically by send/recv methods
         self._writer = writer
         self.logger = logger
+        self._closed = False
 
     async def send(self, bot, data):
         # data should be a dict containing "type" and "details" keys.
@@ -47,6 +46,8 @@ class Connection:
         try:
             encoded = await self._reader.readuntil(b'\0')
         except asyncio.IncompleteReadError:
+            self.logger.info(f"Connection to Marvin broken. Discarding connection.")
+            await self.disconnect()
             return
         msg = encoded.decode('utf-8')
         if msg == "" or msg == "\0":
@@ -66,14 +67,26 @@ class Connection:
         """
         Closes connection with the bot.
         """
-        self.logger.debug(f"Closing connection with '{self.name}'.")
-        self._writer.close()
-        await self._writer.wait_closed()
-        self.logger.debug(f"Connection to bot '{self.name}' closed successfully.")
+        if not (self._closed and self._writer.is_closing()):
+            self.logger.debug(f"Closing connection with '{self.name}'.")
+            self._closed = True
+            self._writer.close()
+            await self._writer.wait_closed()
+            self.logger.debug(f"Connection to bot '{self.name}' closed successfully.")
 
+    # alias
     async def close(self):
-        self._writer.close()
-        await self._writer.wait_closed()
+        await self.disconnect()
+
+    def is_closed(self):
+        if self._closed:
+            if not self._writer.is_closing():
+                self._writer.close()
+            return True
+        elif self._writer.is_closing():
+            self._closed = True
+            return True
+        return False
 
 
 class RevBot(commands.Bot):
@@ -85,10 +98,12 @@ class RevBot(commands.Bot):
     You must pass a name (for socket connection/verification purposes) and a logger into
     the constructor
     """
-    def __init__(self, name, command_prefix=None, logger=None, port=8800, use_socket=True, **kwargs):
+    def __init__(self, name, command_prefix=None, logger=None, port=8800, use_socket=True, close_on_connection_lost=False, **kwargs):
         self._default_prefix = '__'
         command_prefix = command_prefix if command_prefix else self._default_prefix
         super().__init__(command_prefix, **kwargs)
+        self.__future = None
+        self.close_on_connection_lost = close_on_connection_lost
         self._revbot_version = '1.0.0'
         self._name = name
         self._use_socket = use_socket
@@ -98,7 +113,14 @@ class RevBot(commands.Bot):
         self.marvin = None
         self.reader, self.writer = None, None
         self.started_at = datetime.datetime.now()
-        self.logger.info("RevBot initialization complete.")
+        self.logger.debug("RevBot initialization complete.")
+
+    async def try_run(self, coro):
+        try:
+            return await coro
+        except:
+            self.logger.error(f"Encountered error in try_run:", exc_info=True)
+            return
 
     async def on_ready(self):
         """
@@ -156,7 +178,7 @@ class RevBot(commands.Bot):
         if msg == f'verified:{self._name}.':
             self.logger.info("Connection verified.")
             self.marvin = Connection(self._name, self.reader, self.writer, self.logger)
-            asyncio.create_task(self.watch_connection())
+            asyncio.create_task(self.try_run(self.watch_connection()))
         else:
             self.logger.error("Connection refused.")
             return
@@ -167,17 +189,21 @@ class RevBot(commands.Bot):
         """
         self.logger.info(f"Watching for messages from Marvin.")
         try:
-            while self.marvin:
+            while not self.marvin.is_closed():
                 data = await self.marvin.recv()
                 if data:
-                    await (self.on_socket_message(data))
+                    asyncio.create_task(self.try_run(self.on_socket_message(data)))
                 else:
-                    pass
-                    # todo warn that connection was closed. shut down?
+                    self.logger.info("Connection with marvin lost.")
+                    if self.close_on_connection_lost:
+                        self.logger.info("Settings set to kill on lost connection to marvin. Closing bot.")
+                        await self.close()
+                    else:
+                        await self.marvin.disconnect()
+                        self.logger.info("No longer watching for messages from marvin.")
                 # await asyncio.sleep(1)
-        except Exception:
-            self.logger.error("Error in watch_connection:", exc_info=True)
-            await self.marvin.disconnect()
+        except asyncio.CancelledError:
+            self.logger.debug("Task was cancelled.")
         self.logger.info(f"Loop ended. No longer watching for messages from Marvin.")
 
     async def ping(self, bot):
@@ -311,9 +337,15 @@ class RevBot(commands.Bot):
         """
         loop = self.loop
 
+        def terminate():
+            if self.__future:
+                self.__future.cancel()
+            else:
+                loop.close()
+
         try:
-            loop.add_signal_handler(signal.SIGINT, lambda: loop.stop())
-            loop.add_signal_handler(signal.SIGTERM, lambda: loop.stop())
+            loop.add_signal_handler(signal.SIGINT, lambda: terminate())
+            loop.add_signal_handler(signal.SIGTERM, lambda: loop.close())
         except NotImplementedError:
             pass
 
@@ -333,6 +365,8 @@ class RevBot(commands.Bot):
 
         future = asyncio.ensure_future(runner(), loop=loop)
         future.add_done_callback(stop_loop_on_completion)
+        self.__future = future
+
         try:
             loop.run_forever()
         except KeyboardInterrupt:
@@ -349,3 +383,17 @@ class RevBot(commands.Bot):
             await self.marvin.close()
         self.logger.info("Closing connection to discord.")
         await super().close()
+
+    def kill(self):
+        for extension in tuple(self.__extensions):
+            try:
+                self.unload_extension(extension)
+            except Exception:
+                pass
+        for cog in tuple(self.__cogs):
+            try:
+                self.remove_cog(cog)
+            except Exception:
+                pass
+        self.loop.close()
+

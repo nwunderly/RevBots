@@ -1,4 +1,8 @@
 
+startup:
+  - bulbe
+  - kippy
+
 launcher:
   default: revbot.RevBot
 
@@ -9,3 +13,19 @@ launcher:
 
 py files:
   honk: honk.py
+
+logging: juan
+
+short quotes:
+  - Don't talk to me about life.
+  - Pardon me for breathing
+  - ...a brain the size of a planet...
+
+long quotes:
+  - The first ten million years were the worst. And the second ten million years, they were the worst too. The third ten million years I didn't enjoy at all. After that I went into a bit of a decline.
+  - Now the world has gone to bed, Darkness won't engulf my head, I can see in infrared, How I hate the night.
+  - Here I am, brain the size of a planet and they ask me to take you down to the bridge. Call that job satisfaction? 'Cos I don't.
+  - Here I am, brain the size of a planet, and they ask me to pick up a piece of paper.
+
+
+

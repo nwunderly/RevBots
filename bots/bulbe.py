@@ -134,11 +134,11 @@ class Bulbe(RevBot):
 
     async def read_properties(self):
         try:
-            if (filename := f"{self._name}.yaml") in os.listdir("../configs"):
+            if (filename := f"{self._name}.yaml") in os.listdir("configs"):
                 with open("configs/" + filename) as f:
                     properties = yaml.load(f, yaml.Loader)
             else:
-                with open("../configs/default.yaml") as f:
+                with open("configs/default.yaml") as f:
                     properties = yaml.load(f, yaml.Loader)
             self._properties = self.Properties(properties)
             return True
