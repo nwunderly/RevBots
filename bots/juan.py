@@ -5,16 +5,19 @@ from discord.ext import tasks, commands
 
 import yaml
 import os
+import datetime
 import random
 
 # custom imports
 from bots.revbot import RevBot
+from utils.aws import Table
 
 
 class Juandissimo(RevBot):
-    def __init__(self, logger):
-        super().__init__(name='juan', command_prefix='>', logger=logger)
+    def __init__(self, logger, **kwargs):
+        super().__init__(name='juan', command_prefix='>', logger=logger, **kwargs)
         self._properties = dict()
+        self.table = None
 
     async def on_ready(self):
         self.logger.info('Logged in as {0.user}.'.format(self))
@@ -25,6 +28,7 @@ class Juandissimo(RevBot):
         if not p:
             self.logger.error("Error reading properties. Exiting.")
             await self.close()
+        self.table = Table(self._properties['table'])
         self.logger.info("Loading cogs.")
         for cog in self._properties['cogs']:
             try:
@@ -36,7 +40,7 @@ class Juandissimo(RevBot):
 
     async def read_properties(self):
         try:
-            if (filename := f"juan.yaml") in os.listdir("../configs"):
+            if (filename := f"juan.yaml") in os.listdir("configs"):
                 with open("configs/" + filename) as f:
                     self._properties = yaml.load(f, yaml.Loader)
             return True

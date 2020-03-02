@@ -91,10 +91,5 @@ class Table:
 
 if __name__ == "__main__":
     table = Table("Bulbe")
-    table.put({'guildID': 0, 'dataType': 'config', 'prefix': 'epicgamermoment'})
-    print(table.get([0, 'config']))
     x = table.read_to_dict('config')
-    for key, value in x.items():
-        value['prefix'] = '+'
-    table.write_from_dict(x, 'config')
-    print("done")
+    print(x)

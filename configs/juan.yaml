@@ -3,9 +3,11 @@ name: juan
 version: 2.0.0
 prefix: ">"
 
-#table: Juan
+table: Juan
 
-cogs: []
+cogs:
+  - cogs.juan.admin
+  - cogs.juan.dpy
 
 perms:  # initial idea for permissions structure
   docs:

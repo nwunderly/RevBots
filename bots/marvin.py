@@ -299,8 +299,9 @@ class Marvin:
                 "dataReq": self.process_data_req,
                 "response": self.process_response,
                 "pong": self.process_response,
+                "alert": self.process_alert,
                 "summon": self.login_as_bot,
-                "ping": self.pong,
+                "ping": self.pong
             }
             await self.try_run(redirect[data['type']](data))
         else:
@@ -311,6 +312,9 @@ class Marvin:
 
     async def on_bot_connect(self, connection):  # after verifying connection
         self.logger.debug(f"on_bot_connect called. [{connection.name}]")
+
+    async def on_bot_disconnect(self, connection):
+        self.logger.debug(f"on_bot_disconnect called. [{connection.name}]")
 
     async def on_connection(self, reader, writer):
         self.logger.info(f"Received incoming connection. Attempting to verify.")
@@ -358,13 +362,14 @@ class Marvin:
                 else:
                     if bot.name in list(self._bots.keys()):
                         self._bots.pop(bot.name)
-                        self.logger.error(f"Connection with {bot.name} has closed unexpectedly.")
+                        self.logger.error(f"Connection with {bot.name} has closed.")
                         # await self.hook(f"Connection with {connection.name} has closed unexpectedly.")
                     break
         except asyncio.CancelledError:
             self.logger.debug("Task was cancelled.")
         bot._closed = datetime.datetime.now() if not bot._closed else bot._closed
         self.logger.info(f"No longer watching for messages from {bot.name}.")
+        asyncio.create_task(self.try_run(self.on_bot_disconnect(bot)))
 
     async def process_action_req(self, data):
         """
@@ -426,6 +431,11 @@ class Marvin:
                 self.logger.debug("Metrics data sent.")
             else:
                 self.logger.debug(f"Data request '{details[0]}")
+
+    async def process_alert(self, data):
+        # TODO: should process intentional connection loss from client side
+        # should have same cleanup as bot.close()
+        pass
 
     async def process_response(self, data):
         """
@@ -815,6 +825,7 @@ class Marvin:
 
     async def start(self):
         self.logger.debug("Initializing server.")
+        # TODO: unix server if linux
         self._server = await asyncio.start_server(self.on_connection, 'localhost', self._port, loop=self.loop)
         self.logger.info("Starting server.")
         await self.read_properties()

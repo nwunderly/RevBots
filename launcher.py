@@ -1,3 +1,5 @@
+
+import sys
 import yaml
 import logging
 from argparse import ArgumentParser
@@ -39,11 +41,11 @@ class Debug(commands.Cog):
         await m.edit(content=f"Pong! {p1}, {p2}")
 
 
-def start(name, debug, use_socket):
+def start(name, debug, use_socket, persist):
     if name == "marvin":
         start_marvin(debug)
     else:
-        start_bot(name, use_socket)
+        start_bot(name, use_socket, persist)
 
 
 def start_marvin(debug=False):
@@ -56,7 +58,8 @@ def start_marvin(debug=False):
         exit(0)
 
 
-def start_bot(name, use_socket=True):
+def start_bot(name, use_socket=True, persist=False):
+    close_on_disconnect = not persist
     logger = setup_logger(name)
     module_logger(name, 'discord', logging.INFO)
 
@@ -78,21 +81,24 @@ def start_bot(name, use_socket=True):
     #     pass
 
     if classname == 'revbot.RevBot':
-        bot = revbot.RevBot(command_prefix='__', name=name, logger=logger)
+        bot = revbot.RevBot(command_prefix='__', name=name, logger=logger, use_socket=use_socket, close_on_connection_lost=close_on_disconnect)
     elif classname == 'bulbe.Bulbe':
-        bot = bulbe.Bulbe(name=name, logger=logger, use_socket=use_socket, close_on_connection_lost=True)
-        # TODO: close_on_connection_lost command line argument
+        bot = bulbe.Bulbe(name=name, logger=logger, use_socket=use_socket, close_on_connection_lost=close_on_disconnect)
     elif classname == 'evalbot.EvalBot':
         bot = evalbot.EvalBot()
     elif classname == 'juan.Juandissimo':
-        bot = juan.Juandissimo(logger)
+        bot = juan.Juandissimo(logger, use_socket=use_socket)
     else:
         logger.error("No class found. Closing.")
         exit(0)
 
+    if sys.platform != 'linux':
+        try:
+            bot.add_cog(Debug(bot))
+            bot.add_cog(evalbot.EvalCog(bot))
+        except commands.ExtensionFailed:
+            pass
     try:
-        bot.add_cog(Debug(bot))
-        bot.add_cog(evalbot.EvalCog(bot))
         bot.run(authentication.tokens[name])
     finally:
         logger.info("Bot closed.")
@@ -105,10 +111,11 @@ def main():
     parser.add_argument('bot')
     parser.add_argument('--debug', '-d', action='store_true')
     parser.add_argument('--no-socket', '-ns', action='store_false')
+    parser.add_argument('--persist', '-p', action='store_true')
 
     args = parser.parse_args()
 
-    start(args.bot, args.debug, args.no_socket)
+    start(args.bot, args.debug, args.no_socket, args.persist)
 
 
 if __name__ == "__main__":

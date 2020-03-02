@@ -135,10 +135,11 @@ class RevBot(commands.Bot):
                                                description=f"Prefix: `{self.command_prefix}`"))
 
     async def on_message(self, message):
-        if message.bot:
+        if message.author.bot:
             return
-        if (await self.is_owner(message.author)) and message.content == self.user.mention:
+        if (await self.is_owner(message.author)) and message.content in ['<@!572566171174305793>', '<@572566171174305793>']:
             await self.ping_response(message.channel)
+        await self.process_commands(message)
 
     async def on_socket_message(self, data):
         """

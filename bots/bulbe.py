@@ -10,6 +10,7 @@ import random
 # custom imports
 from bots.revbot import RevBot
 from utils.sheets import SheetsClient
+from utils.aws import Table
 
 
 def prefix(bot, message, only_guild_prefix=False):
@@ -42,7 +43,7 @@ class Bulbe(RevBot):
         self._user_blacklist = []
         self._guild_blacklist = []
         self._locked = False
-        self.sheets = None
+        self.table = None
         # self.add_check(checks.global_checks) todo
         self.logger.info(f'Initialization complete. [{name}]')
 
@@ -153,8 +154,11 @@ class Bulbe(RevBot):
 
     def read_blacklists(self):
         try:
-            blacklists = self.sheets.read_blacklists(self._name)
-            self._user_blacklist, self._guild_blacklist = blacklists
+            data = self.table.get([0, 'blacklists'])
+            # primary key 0 means general bot data
+            users, guilds = data['users'], data['guilds']
+            self._user_blacklist = [user[0] for user in users]
+            self._guild_blacklist = [guild[0] for guild in guilds]
             return True
         except Exception as e:
             print(str(e))
@@ -164,13 +168,14 @@ class Bulbe(RevBot):
     def write_blacklists(self):
         users = []
         guilds = []
+        data = dict()
         for user_id in self._user_blacklist:
             users.append([user_id, str(self.get_user(user_id))])
         for guild_id in self._guild_blacklist:
             guilds.append([guild_id, str(self.get_guild(guild_id))])
-        data = users, guilds
+        data['users'], data['guilds'] = users, guilds
         try:
-            self.sheets.write_blacklists(self._name, data)
+            self.table.put(data, [0, 'blacklists'])
             return True
         except Exception:
             return False
@@ -201,7 +206,7 @@ class Bulbe(RevBot):
         if not p:
             self.logger.error('Error reading properties file. Shutting down.')
             await self.close()
-        self.sheets = SheetsClient(self._name)
+        self.table = Table('Bulbe')
         self.logger.info('Loading cogs.')
         self.logger.info('YAML data loaded.')
         for cog in self._properties.cogs:

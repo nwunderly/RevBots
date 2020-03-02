@@ -2,7 +2,7 @@
 import discord
 from discord.ext import commands
 
-from utils.sheets import SheetsClient, SheetsException
+from utils.aws import Table
 from utils.utility import module_logger
 
 empty = {
@@ -67,15 +67,15 @@ class Config(commands.Cog):
         self.bot._config = {}
         c = self.read_config()
         if not c:
-            raise Exception("Config could not be loaded from Sheets.")
+            raise Exception("Config could not be loaded from DynamoDB.")
 
     def generate_empty_config(self, guild):
         self.bot._config[guild.id] = empty_config()
 
     def read_config(self):
         try:
-            client = self.bot.sheets
-            self.bot._config = client.read_configs(self.bot._name)
+            table = self.bot.table
+            self.bot._config = table.read_to_dict('config')
             return True
         except Exception as e:
             print(str(e))
@@ -86,8 +86,8 @@ class Config(commands.Cog):
         for key in self.bot._config.keys():
             self.bot._config[key]['name'] = str(self.bot.get_guild(key))
         try:
-            client = self.bot.sheets
-            client.write_config(self.bot._name, self.bot._config)
+            table = self.bot.table
+            table.write_from_dict(self.bot._config, 'config')
             return True
         except Exception:
             return False
@@ -95,7 +95,7 @@ class Config(commands.Cog):
     def cog_unload(self):
         c = self.write_config()
         if not c:
-            self.logger.error("Error writing to config file.")
+            self.logger.error("Error writing config to database.")
 
     @commands.Cog.listener()
     async def on_ready(self):

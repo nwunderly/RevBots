@@ -1,8 +1,6 @@
-
-import json
 import yaml
 
-from configs.config import _ as _dict
+from other.config import _ as _dict
 
 # with open('config.json', 'r') as f:
 #     _dict = json.load(f)
