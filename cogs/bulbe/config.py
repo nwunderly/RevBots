@@ -65,6 +65,8 @@ class Config(commands.Cog):
         self.bot = bot
         self.logger = module_logger(self.bot._name, 'config')
         self.bot._config = {}
+        if not self.bot.table:
+            raise Exception("Connection to DynamoDB table not found.")
         c = self.read_config()
         if not c:
             raise Exception("Config could not be loaded from DynamoDB.")

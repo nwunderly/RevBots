@@ -1,35 +1,37 @@
 
+# WHEN UPDATING THIS FILE BE SURE TO UPDATE THE NAMED TUPLE IN JUAN.PY
+
 name: juan
 version: 2.0.0
 prefix: ">"
 
 table: Juan
 
+guild: 576168356823040010
+
 cogs:
   - cogs.juan.admin
   - cogs.juan.dpy
 
-perms:  # initial idea for permissions structure
+perms:
   docs:
     - unrestricted: this and owner return True for all checks
     - systemAdmin: exclusively bot management related stuff
-    - serverAdmin: moderation stuff and server management stuff
-    - serverMod: moderation related stuff
-    - juanDev: someone with dev access to the bot
+    - guildAdmin: moderation stuff and server management stuff
+    - guildMod: moderation related stuff
+    - developer: general commands on the bot
 
   204414611578028034: unrestricted  # nwunder
-  576206861431210014: guildAdmin   # administrator role
-  582328137363488769: guildMod     # moderator role
-
-
-guild: 576168356823040010
-
-channels:
-  - 0
-
-roles:
-  - 0
-
+  448250281097035777: systemAdmin   # No Jons
+  576206861431210014:               # administrator role
+    - guildAdmin
+    - guildMod
+    - developer
+  582328137363488769:               # moderator role
+    - guildMod
+    - developer
+  582399407698477057:               # developer role
+    - developer
 
 
 

@@ -11,6 +11,7 @@ from discord.ext import commands
 #   uses bot._properties now
 
 
+# global checks for bulbe
 async def global_checks(ctx):
     # return await bulbe_perm_check(ctx, "admin")
     if await bulbe_perm_check(ctx, "admin"):
@@ -49,8 +50,7 @@ def bot_admin():
     return commands.check(pred)
 
 
-
-# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 async def check_permissions(ctx, perms, *, check=all):

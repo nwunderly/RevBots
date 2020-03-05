@@ -23,7 +23,7 @@ class EvalBot(commands.Bot):
                                                description=f"Prefix: `{self.command_prefix}`"))
 
     async def on_message(self, message):
-        if message.bot:
+        if message.author.bot:
             return
         if (await self.is_owner(message.author)) and message.content == self.user.mention:
             await self.ping_response(message.channel)

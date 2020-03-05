@@ -7,17 +7,24 @@ import yaml
 import os
 import datetime
 import random
+import collections
 
 # custom imports
 from bots.revbot import RevBot
 from utils.aws import Table
+from utils import juan_checks as checks
+
+
+properties_fields = ['name', 'version', 'prefix', 'table', 'guild', 'cogs', 'perms']
+Properties = collections.namedtuple("Properties", properties_fields)
 
 
 class Juandissimo(RevBot):
     def __init__(self, logger, **kwargs):
         super().__init__(name='juan', command_prefix='>', logger=logger, **kwargs)
-        self._properties = dict()
+        self.properties = Properties(*list(None for _ in properties_fields))
         self.table = None
+        self.add_check(checks.global_check)
 
     async def on_ready(self):
         self.logger.info('Logged in as {0.user}.'.format(self))
@@ -28,9 +35,9 @@ class Juandissimo(RevBot):
         if not p:
             self.logger.error("Error reading properties. Exiting.")
             await self.close()
-        self.table = Table(self._properties['table'])
+        self.table = Table(self.properties.table)
         self.logger.info("Loading cogs.")
-        for cog in self._properties['cogs']:
+        for cog in self.properties.cogs:
             try:
                 self.load_extension(cog)
                 self.logger.info(f"Loaded cog {cog}.")
@@ -42,8 +49,10 @@ class Juandissimo(RevBot):
         try:
             if (filename := f"juan.yaml") in os.listdir("configs"):
                 with open("configs/" + filename) as f:
-                    self._properties = yaml.load(f, yaml.Loader)
-            return True
+                    p = yaml.load(f, yaml.Loader)
+                    self.properties = Properties(**p)
+                return True
+            return False
         except yaml.YAMLError:
             return False
 
