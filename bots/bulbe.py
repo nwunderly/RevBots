@@ -6,22 +6,21 @@ from discord.ext import tasks, commands
 import yaml
 import os
 import random
+import collections
 
 # custom imports
 from bots.revbot import RevBot
-from utils.sheets import SheetsClient
 from utils.aws import Table
 
 
 def prefix(bot, message, only_guild_prefix=False):
-    default = bot._properties.prefix if bot._properties else bot._default_prefix
-    mention = bot.user.mention + " "
+    default = bot.properties.prefix if bot.properties else bot.default_prefix
     if not message.guild:
-        return commands.when_mentioned(bot, message) + default
-    if message.guild.id not in bot._config.keys():
+        return commands.when_mentioned(bot, message) + [default]
+    if message.guild.id not in bot.config.keys():
         guild_prefix = default
     else:
-        config = bot._config[message.guild.id]
+        config = bot.config[message.guild.id]
         if 'prefix' in config.keys():
             p = config.get('prefix')
             guild_prefix = p if p else default
@@ -38,11 +37,11 @@ class Bulbe(RevBot):
         super().__init__(name, logger=logger, use_socket=use_socket, command_prefix=command_prefix, case_insensitive=True,
                          description='Best Bot <3', **kwargs)
         self._nwunder = None
-        self._properties = None
-        self._config = {}
+        self._config = collections.defaultdict(default_factory=lambda: {})
         self._user_blacklist = []
         self._guild_blacklist = []
         self._locked = False
+        self.properties = None
         self.table = None
         # self.add_check(checks.global_checks) todo
         self.logger.info(f'Initialization complete. [{name}]')
@@ -50,11 +49,9 @@ class Bulbe(RevBot):
     async def on_ready(self):
         self.logger.info('Logged in as {0.user}.'.format(self))
         self._nwunder = await self.fetch_user(204414611578028034)
-        if not self.command_prefix:
-            self.command_prefix = f"++"
-        if self._properties:
+        if self.properties:
             self.logger.info("Converting properties.")
-            await self._properties.convert(self)
+            await self.properties.convert(self)
         else:
             self.logger.error("on_ready called but Properties object has not been defined.")
         self.update_presence.start()
@@ -90,6 +87,9 @@ class Bulbe(RevBot):
         self.update_presence.start()
         self.logger.info('Bot has been unlocked.')
 
+    def is_locked(self):
+        return self._locked
+
     async def process_direct_messages(self, message):
         if message.guild:
             return
@@ -98,7 +98,7 @@ class Bulbe(RevBot):
                          f"{message.content}\n"
                          f"Attachments: {attachments}")
         # channel = self.get_channel(self._properties.logging_channel)
-        channel = self._properties.logging_channel
+        channel = self.properties.logging_channel
         if len(message.content) > 1500:
             content = message.clean_content[:1500] + f".... {len(message.clean_content)}"
         else:
@@ -112,16 +112,16 @@ class Bulbe(RevBot):
             await message.channel.send(embed=self.get_embed(message))
 
     def get_embed(self, message=None):
-        prefix = self.command_prefix(self, message, only_guild_prefix=True)
-        e = discord.Embed(title=f"Bulbe v{self._properties.version}",
-                          color=self._properties.embed_color,
-                          description=f"Prefix: `{prefix}`")
+        p = self.command_prefix(self, message, only_guild_prefix=True)
+        e = discord.Embed(title=f"Bulbe v{self.properties.version}",
+                          color=self.properties.embed_color,
+                          description=f"Prefix: `{p}`")
         return e
 
     @tasks.loop(hours=1)
     async def update_presence(self):
         activity = None
-        name = random.choice(self._properties.activities)
+        name = random.choice(self.properties.activities)
         if name.lower().startswith("playing "):
             activity = discord.Game(name.replace("playing ", ""))
         elif name.lower().startswith("watching "):
@@ -141,7 +141,7 @@ class Bulbe(RevBot):
             else:
                 with open("configs/default.yaml") as f:
                     properties = yaml.load(f, yaml.Loader)
-            self._properties = self.Properties(properties)
+            self.properties = self.Properties(properties)
             return True
         except yaml.YAMLError:
             return False
@@ -182,7 +182,7 @@ class Bulbe(RevBot):
 
     class Properties:
         def __init__(self, properties):
-            self._properties_dict = properties
+            self.properties_dict = properties
             for key in properties.keys():
                 value = properties[key]
                 key = key.replace(" ", "_")
@@ -209,7 +209,7 @@ class Bulbe(RevBot):
         self.table = Table('Bulbe')
         self.logger.info('Loading cogs.')
         self.logger.info('YAML data loaded.')
-        for cog in self._properties.cogs:
+        for cog in self.properties.cogs:
             self.logger.info(f'Loading {cog}.')
             try:
                 self.load_extension(cog)

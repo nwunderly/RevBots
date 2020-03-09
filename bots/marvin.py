@@ -57,7 +57,7 @@ class Bot:
     Wraps a bot's subprocess and socket connection.
     get_process() method locates process based on command line
     """
-    def __init__(self, name, logger, process=None, cmdline=None):
+    def __init__(self, name, marvin, process=None, cmdline=None):
         self.name = name
         self._started_at = datetime.datetime.now()
         self._reader = None
@@ -67,7 +67,8 @@ class Bot:
         self._closed = False  # will be set to datetime as of bot being closed
         self._task = None
         self._task_completed = False
-        self.logger = logger
+        self.logger = marvin.logger
+        self.marvin = marvin
         self.cmdline = cmdline
 
     def is_bound(self):
@@ -181,7 +182,10 @@ class Bot:
         exit_code = None
 
         # close socket connection
-        # await self.send({'type': 'actionReq', 'details': ['closeBot']})
+        if self.is_bound():
+            self._task.cancel()
+            sent = await self.send({'type': 'actionReq', 'details': ['closeBot']})
+            await self.marvin.wait_for_response(sent, timeout=5)
         await self.disconnect()
 
         # if subprocess, sends SIGINT (ctrl+c)
@@ -255,7 +259,7 @@ class Marvin:
         self._port = 8800
         self._bots = dict()
         self._response_queue = dict()
-        self._startup_bots = ['bulbe']  # uses this if it can't read from yaml
+        self._startup_bots = ['kippy']  # uses this if it can't read from yaml
         self._error_detected = dict()
         self._webhook_session = None    # webhook session
         self._webhook = webhook
@@ -464,7 +468,7 @@ class Marvin:
         """
         self.logger.info(f"wait_for response called, data: {data}")
         t = time.monotonic()
-        key = (data['to'], data['timestamp'])  # TODO FIX THIS SO PING WORKS WITH METRICS
+        key = (data['to'], data['timestamp'])
         self._response_queue[key] = None
         # response_queue[key] should be True, False, or None depending on the status of the action
         self.logger.debug(f"Waiting for response for {key}.\n_response_queue: {self._response_queue.keys()}")
@@ -529,15 +533,15 @@ class Marvin:
 
     async def start_bot(self, name):
         self.logger.info(f"Starting {name}.")
-        # if sys.platform == 'linux':
-        #     p = await asyncio.create_subprocess_exec('python3', 'launcher.py', name,
-        #                                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
-        # else:
-        #     p = await asyncio.create_subprocess_exec('python', 'launcher.py', name,
-        #                                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        #                                              creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP)
-        # self._bots[name] = Bot(name, self.logger, p)
-        self._bots[name] = Bot(name, self.logger)
+        if sys.platform == 'linux':
+            p = await asyncio.create_subprocess_exec('python3', 'launcher.py', name, '--debug',
+                                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
+        else:
+            p = await asyncio.create_subprocess_exec('python', 'launcher.py', name, '--debug',
+                                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                                     creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP)
+        self._bots[name] = Bot(name, self, p)
+        # self._bots[name] = Bot(name, self)
 
     async def webhook_report(self, _type, description, data):
         self.logger.debug(f"Sending webhook report; type '{_type}', data: {data}")

@@ -60,6 +60,7 @@ class Connection:
         except SyntaxError:
             return
         if type(data) is not dict:
+            self.logger.error(f"Received incorrect type of data. {type(data)} [should have been dict]")
             return
         return data
 
@@ -240,6 +241,7 @@ class RevBot(commands.Bot):
         details = data['details']
         if details[0] == 'closeBot':
             self.logger.info(f"Closing; requested by server.")
+            await self.marvin.send({'type': 'response', })
             await self.close()
         _last = self
         for key in (details := data['details']).keys():

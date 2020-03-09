@@ -8,9 +8,9 @@ embed color: 2ecc71
 logging channel: 559509631466995749
 invite permissions: 2110258423
 
-cogs:
-  - cogs.admin
-  - cogs.moderation
+cogs: []
+#  - cogs.admin
+#  - cogs.moderation
 
 bot perms:
   options:

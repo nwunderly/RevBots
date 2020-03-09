@@ -4,11 +4,9 @@ from discord.ext import commands
 
 # todo
 #   locked check
-#   bot admin check
 #   bot operator check
 #   make danny checks override correctly
 #   user_has_permissions vs bot_has_permissions vs check_permissions
-#   uses bot._properties now
 
 
 # global checks for bulbe
@@ -33,7 +31,7 @@ async def global_checks(ctx):
 async def bulbe_perm_check(ctx, permission):
     if await ctx.bot.is_owner(ctx.author):
         return True
-    return permission in ctx.bot._properties.bot_admins[ctx.author.id]
+    return permission in ctx.bot.properties.bot_admins[ctx.author.id]
 
 
 def bulbe_perms(permission):

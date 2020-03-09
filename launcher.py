@@ -45,7 +45,7 @@ def start(name, debug, use_socket, persist):
     if name == "marvin":
         start_marvin(debug)
     else:
-        start_bot(name, use_socket, persist)
+        start_bot(name, debug, use_socket, persist)
 
 
 def start_marvin(debug=False):
@@ -58,7 +58,7 @@ def start_marvin(debug=False):
         exit(0)
 
 
-def start_bot(name, use_socket=True, persist=False):
+def start_bot(name, debug=False, use_socket=True, persist=False):
     close_on_disconnect = not persist
     logger = setup_logger(name)
     module_logger(name, 'discord', logging.INFO)
@@ -92,7 +92,7 @@ def start_bot(name, use_socket=True, persist=False):
         logger.error("No class found. Closing.")
         exit(0)
 
-    if sys.platform != 'linux':
+    if sys.platform != 'linux' or debug:
         try:
             bot.add_cog(Debug(bot))
             bot.add_cog(evalbot.EvalCog(bot))
