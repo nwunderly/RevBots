@@ -22,6 +22,7 @@ from asyncio import tasks
 from authentication import authentication
 from authentication import captain_hook
 from bots.evalbot import EvalBot
+from utils import utility
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -59,7 +60,7 @@ class Bot:
     """
     def __init__(self, name, marvin, process=None, cmdline=None):
         self.name = name
-        self._started_at = datetime.datetime.now()
+        self._started_at = None  # datetime.datetime.now()
         self._reader = None
         self._writer = None
         self._subprocess = process
@@ -108,7 +109,14 @@ class Bot:
             cmdline = [('python3.8' if sys.platform == 'linux' else 'python'), 'launcher.py', self.name]
         else:
             cmdline = self.cmdline
-        self._psutil_process = await get_process(cmdline)
+        try:
+            self._psutil_process = psutil.Process(self._subprocess.pid)
+        except psutil.NoSuchProcess:
+            self._psutil_process = None
+        except AttributeError:
+            self._psutil_process = None
+        if not self._psutil_process:
+            self._psutil_process = await get_process(cmdline)
         if p := self._psutil_process:
             self.logger.debug(f"get_process returning {p}.")
             return p
@@ -534,7 +542,7 @@ class Marvin:
     async def start_bot(self, name):
         self.logger.info(f"Starting {name}.")
         if sys.platform == 'linux':
-            p = await asyncio.create_subprocess_exec('python3', 'launcher.py', name, '--debug',
+            p = await asyncio.create_subprocess_exec('python3.8', f'{utility.home_dir}/launcher.py', name, '--debug',
                                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
         else:
             p = await asyncio.create_subprocess_exec('python', 'launcher.py', name, '--debug',
@@ -672,8 +680,8 @@ class Marvin:
     async def check_metrics(self):
         self.logger.debug("check_metrics called.")
         system_threshold = {  # threshold for overall CPU/RAM usage
-            'cpu':      90,
-            'memory':   90,
+            'cpu':      70,
+            'memory':   60,
         }
         bot_threshold = {  # includes check for this
             'cpu':       10,

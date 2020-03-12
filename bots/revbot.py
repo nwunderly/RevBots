@@ -9,8 +9,6 @@ import signal
 import time
 import asyncio
 import datetime
-import psutil
-import traceback
 
 # custom imports
 from utils.utility import setup_logger

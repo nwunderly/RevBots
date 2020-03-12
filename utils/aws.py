@@ -17,7 +17,7 @@ class Table:
         else:
             self.logger = stream_logger('dynamodb')
         self.name = table_name
-        self.resource = boto3.resource('dynamodb')
+        self.resource = boto3.resource('dynamodb', region_name='us-east-2')
         self.table = self.resource.Table(table_name)
         self.primary_key = self.table.key_schema[0]['AttributeName']
         self.sort_key = self.table.key_schema[1]['AttributeName']

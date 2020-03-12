@@ -13,6 +13,7 @@ import collections
 from bots.revbot import RevBot
 from utils.aws import Table
 from utils import juan_checks as checks
+from utils import utility
 
 
 properties_fields = ['name', 'version', 'prefix', 'table', 'guild', 'cogs', 'perms']
@@ -47,8 +48,8 @@ class Juandissimo(RevBot):
 
     async def read_properties(self):
         try:
-            if (filename := f"juan.yaml") in os.listdir("configs"):
-                with open("configs/" + filename) as f:
+            if (filename := f"juan.yaml") in os.listdir(utility.home_dir + "/configs"):
+                with open(utility.home_dir + "/configs/" + filename) as f:
                     p = yaml.load(f, yaml.Loader)
                     self.properties = Properties(**p)
                 return True

@@ -64,7 +64,7 @@ class Config(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.logger = module_logger(self.bot._name, 'config')
-        self.bot._config = {}
+        self.bot.config = {}
         if not self.bot.table:
             raise Exception("Connection to DynamoDB table not found.")
         c = self.read_config()
@@ -72,24 +72,24 @@ class Config(commands.Cog):
             raise Exception("Config could not be loaded from DynamoDB.")
 
     def generate_empty_config(self, guild):
-        self.bot._config[guild.id] = empty_config()
+        self.bot.config[guild.id] = empty_config()
 
     def read_config(self):
         try:
             table = self.bot.table
-            self.bot._config = table.read_to_dict('config')
+            self.bot.config = table.read_to_dict('config')
             return True
         except Exception as e:
             print(str(e))
-            self.bot._config = {}
+            self.bot.config = {}
             return False
 
     def write_config(self):
-        for key in self.bot._config.keys():
-            self.bot._config[key]['name'] = str(self.bot.get_guild(key))
+        for key in self.bot.config.keys():
+            self.bot.config[key]['name'] = str(self.bot.get_guild(key))
         try:
             table = self.bot.table
-            table.write_from_dict(self.bot._config, 'config')
+            table.write_from_dict(self.bot.config, 'config')
             return True
         except Exception:
             return False
@@ -103,23 +103,23 @@ class Config(commands.Cog):
     async def on_ready(self):
         self.logger.info("Generating empty configs for non-configured guilds")
         for guild in self.bot.guilds:
-            if guild.id not in self.bot._config.keys():
+            if guild.id not in self.bot.config.keys():
                 self.generate_empty_config(guild)
                 self.logger.info(f"Generated empty config for guild {guild.name}.")
         empty = empty_config()
-        for guild_id in self.bot._config.keys():
+        for guild_id in self.bot.config.keys():
             updated = False
             for key in empty.keys():
-                if key not in self.bot._config[guild_id].keys():
+                if key not in self.bot.config[guild_id].keys():
                     updated = True
-                    self.bot._config[guild_id][key] = empty[key]
+                    self.bot.config[guild_id][key] = empty[key]
             if updated:
                 guild = self.bot.get_guild(guild_id)
                 self.logger.info(f"Updated config for guild {guild.name if guild else guild_id}.")
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        if guild.id not in self.bot._config.keys():
+        if guild.id not in self.bot.config.keys():
             self.logger.info(f"Could not find config for guild {guild.name}. Generating empty config.")
             self.generate_empty_config(guild)
 

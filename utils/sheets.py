@@ -11,6 +11,8 @@ import logging
 
 from utils.spreadsheet_snippets import SpreadsheetSnippets
 from utils.utility import module_logger, stream_logger
+from authentication.authentication import linux_username
+
 
 # If modifying these scopes, delete the file authentication/sheets_token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/spreadsheets']
@@ -145,7 +147,7 @@ def get_creds():
     # logger.debug("get_creds() called.")
     creds = None
     if sys.platform == 'linux':
-        path = '../ec2-user/authentication/sheets_token.pickle'
+        path = f'../{linux_username}/authentication/sheets_token.pickle'
     else:
         path = '../RevBots/authentication/sheets_token.pickle'
     if os.path.exists(path):

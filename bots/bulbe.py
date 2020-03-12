@@ -5,12 +5,14 @@ from discord.ext import tasks, commands
 
 import yaml
 import os
+import sys
 import random
 import collections
 
 # custom imports
 from bots.revbot import RevBot
 from utils.aws import Table
+from utils import utility
 
 
 def prefix(bot, message, only_guild_prefix=False):
@@ -37,7 +39,7 @@ class Bulbe(RevBot):
         super().__init__(name, logger=logger, use_socket=use_socket, command_prefix=command_prefix, case_insensitive=True,
                          description='Best Bot <3', **kwargs)
         self._nwunder = None
-        self._config = collections.defaultdict(default_factory=lambda: {})
+        self.config = collections.defaultdict(default_factory=lambda: {})
         self._user_blacklist = []
         self._guild_blacklist = []
         self._locked = False
@@ -135,11 +137,11 @@ class Bulbe(RevBot):
 
     async def read_properties(self):
         try:
-            if (filename := f"{self._name}.yaml") in os.listdir("configs"):
-                with open("configs/" + filename) as f:
+            if (filename := f"{self._name}.yaml") in os.listdir(f"{utility.home_dir}/configs"):
+                with open(f"{utility.home_dir}/configs/" + filename) as f:
                     properties = yaml.load(f, yaml.Loader)
             else:
-                with open("configs/default.yaml") as f:
+                with open(f"{utility.home_dir}/configs/default.yaml") as f:
                     properties = yaml.load(f, yaml.Loader)
             self.properties = self.Properties(properties)
             return True

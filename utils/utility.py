@@ -5,6 +5,14 @@ import logging
 import sys
 import datetime
 
+from authentication.authentication import linux_username
+
+
+if sys.platform == 'linux':
+    home_dir = f'/home/{linux_username}'
+else:
+    home_dir = ''
+
 
 def list_by_category(guild):
     channels = []
@@ -22,8 +30,8 @@ def setup_logger(name):
     time = f"{d.month}-{d.day}_{d.hour}h{d.minute}m"
 
     if sys.platform == 'linux':
-        filename = '../ec2-user/logs/{}/{}.log'
-        level = logging.INFO
+        filename = home_dir + '/logs/{}/{}.log'
+        level = logging.DEBUG  # INFO
     else:
         filename = '../RevBots/logs/{}/{}.log'
         level = logging.DEBUG
@@ -50,7 +58,7 @@ def module_logger(name, extension, level=logging.DEBUG, stream=True, file=True):
     time = f"{d.month}-{d.day}_{d.hour}h{d.minute}m"
 
     if sys.platform == 'linux':
-        filename = '../ec2-user/logs/{}/{}.log'
+        filename = home_dir + '/logs/{}/{}.log'
     else:
         filename = '../RevBots/logs/{}/{}.log'
     # uses name to log in the same file as bot logger
