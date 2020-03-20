@@ -1,0 +1,24 @@
+
+[Unit]
+
+Description=Marvin
+
+
+
+[Service]
+
+ExecStart=/usr/bin/python3.8 /home/bots/launcher.py marvin
+
+Environment=PYTHONUNBUFFERED=1
+
+Restart=on-failure
+
+Type=notify
+
+User=bots
+
+
+
+[Install]
+
+WantedBy=default.target

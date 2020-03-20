@@ -1,0 +1,26 @@
+
+[Unit]
+
+Description=Bulbe
+
+StartLimitIntervalSec=5min
+StartLimitBurst=5
+
+[Service]
+
+ExecStart=/usr/bin/python3.8 /home/bots/launcher.py bulbe
+
+Environment=PYTHONUNBUFFERED=1
+
+Restart=on-failure
+
+#Type=notify
+
+User=bots
+
+WatchdogSec=30s
+
+
+[Install]
+
+WantedBy=default.target

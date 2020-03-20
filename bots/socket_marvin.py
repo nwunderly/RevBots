@@ -55,12 +55,14 @@ async def get_process(cmdline=None):
 
 class Bot:
     """
-    Wraps a bot's subprocess and psutil connection.
+    Wraps a bot's subprocess and socket connection.
     get_process() method locates process based on command line
     """
     def __init__(self, name, marvin, process=None, cmdline=None):
         self.name = name
         self._started_at = None  # datetime.datetime.now()
+        self._reader = None
+        self._writer = None
         self._subprocess = process
         self._psutil_process = None
         self._closed = False  # will be set to datetime as of bot being closed
@@ -70,8 +72,25 @@ class Bot:
         self.marvin = marvin
         self.cmdline = cmdline
 
+    def is_bound(self):
+        if not self._writer or not self._reader:
+            return False
+        return True
+
     def is_closed(self):
         return self._closed
+
+    def is_active(self):
+        return self.is_bound() and not self.is_closed()
+
+    async def bind(self, reader, writer):
+        if not self.is_bound():
+            self._reader = reader
+            self._writer = writer
+            self.logger.debug(f"{self.name} is now bound")
+            return True
+        else:
+            return False
 
     async def set_task(self, task):
         if not self._task:
@@ -105,6 +124,61 @@ class Bot:
             self.logger.debug(f"get_process returning None.")
             return None
 
+    async def send(self, data):
+        """
+        Sends data to the associated bot.
+        Data should be a dict.
+        """
+        self.logger.debug(f"Sending message to {self.name}: {data}")
+        if not self._writer:
+            self.logger.debug("No writer found.")
+            return None
+        data['to'] = self.name
+        if 'from' not in data.keys():
+            data['from'] = 'marvin'
+        if 'timestamp' not in data.keys():
+            data['timestamp'] = str(datetime.datetime.now())
+        encoded = (str(data) + '\0').encode('utf-8')
+        self._writer.write(encoded)
+        await self._writer.drain()
+        return data
+
+    async def recv(self):
+        """
+        Attempts to read a message from bot.
+        Waits until it receives a message, returns None if connection is lost.
+        """
+        self.logger.debug(f"Receiving message from bot '{self.name}'")
+        try:
+            encoded = await self._reader.readuntil(b'\0')
+        except asyncio.IncompleteReadError:
+            return
+        msg = encoded.decode('utf-8')
+        if msg == "" or msg == "\0":
+            self.logger.info(f"Connection to {self.name} broken. Discarding connection.")
+            await self.disconnect()
+            return
+        self.logger.debug(f"Received message from {self.name}: {msg}")
+        try:
+            data = ast.literal_eval(msg.replace("\0", ""))  # should be dict
+        except SyntaxError:
+            return
+        if type(data) is not dict:
+            return
+        return data
+
+    async def disconnect(self):
+        """
+        Closes connection with the bot.
+        """
+        self.logger.debug(f"Closing connection with '{self.name}'.")
+        if not self._task.cancelled():
+            self._task.cancel()
+        if self._writer:
+            self._writer.close()
+            await self._writer.wait_closed()
+        self.logger.debug(f"Connection to bot '{self.name}' closed successfully.")
+
     async def close(self):
         """
         Sends message to bot, requesting that it initiate safe shutdown.
@@ -114,6 +188,13 @@ class Bot:
         self.logger.info(f"Sending termination request to {self.name}.")
         self._closed = True
         exit_code = None
+
+        # close socket connection
+        if self.is_bound():
+            self._task.cancel()
+            sent = await self.send({'type': 'actionReq', 'details': ['closeBot']})
+            await self.marvin.wait_for_response(sent, timeout=5)
+        await self.disconnect()
 
         # if subprocess, sends SIGINT (ctrl+c)
         if self._subprocess:
@@ -185,6 +266,7 @@ class Marvin:
         self._properties = None
         self._port = 8800
         self._bots = dict()
+        self._response_queue = dict()
         self._startup_bots = ['kippy']  # uses this if it can't read from yaml
         self._error_detected = dict()
         self._webhook_session = None    # webhook session
@@ -217,6 +299,245 @@ class Marvin:
         self._webhook_session = session
         self._webhook = Webhook.from_url(hook, adapter=AsyncWebhookAdapter(session))
         return session
+
+    async def on_socket_message(self, bot, data):
+        self.logger.debug(f"Message received from {bot.name}: {data}")
+        if bot.name != data['from']:
+            self.logger.debug(f"Bot name ({data['from']}) did not match socket connection name ({bot.name}). Returning.")
+            return
+        if data['to'] == 'marvin':
+            redirect = {
+                "actionReq": self.process_action_req,
+                "dataReq": self.process_data_req,
+                "response": self.process_response,
+                "pong": self.process_response,
+                "alert": self.process_alert,
+                "summon": self.login_as_bot,
+                "ping": self.pong
+            }
+            await self.try_run(redirect[data['type']](data))
+        else:
+            if (name := data['to']) in list(self._bots.keys()) and self._bots[name].is_active():
+                await self._bots[data['to']].send(data)  # forwards to other bot
+            else:
+                self.logger.debug(f"Socket message ignored: {data}")
+
+    async def on_bot_connect(self, connection):  # after verifying connection
+        self.logger.debug(f"on_bot_connect called. [{connection.name}]")
+
+    async def on_bot_disconnect(self, connection):
+        self.logger.debug(f"on_bot_disconnect called. [{connection.name}]")
+
+    async def on_connection(self, reader, writer):
+        self.logger.info(f"Received incoming connection. Attempting to verify.")
+        name = await self.verify_connection(reader, writer)
+        if name:
+            self.logger.debug(f"Setting up connection to {name}.")
+            bot = self._bots[name]
+            if not await bot.bind(reader, writer):
+                self.logger.debug("Failed to bind. Closing connection.")
+                writer.close()
+                await writer.wait_closed()
+                return
+            task = asyncio.create_task(self.try_run(self.watch_connection(bot)), name=f'watch_{name}')
+            await bot.set_task(task)
+        else:
+            self.logger.info("Connection was terminated.")
+
+    async def verify_connection(self, reader, writer):
+        msg = await reader.readuntil(b'\0')
+        self.logger.debug(f"Verification message received: {msg}")
+        if (msg := msg.decode('utf-8').replace("\0", "")) in list(self._bots.keys()) and not self._bots[msg].is_bound():
+            self.logger.info(f"Verified as {msg}.")
+            writer.write(f"verified:{msg}.\0".encode('utf-8'))
+            await writer.drain()
+            return msg
+        else:
+            self.logger.info(f"Could not verify. Closing connection. ({msg})")
+            writer.close()
+            await writer.wait_closed()
+            return False
+
+    async def watch_connection(self, bot):
+        asyncio.create_task(self.try_run(self.on_bot_connect(bot)))
+        self.logger.info(f"Watching for messages from {bot.name}.")
+        self.logger.debug(f"Waiting for {bot.name} to be bound.")
+        try:
+            while not bot.is_bound():
+                self.logger.debug(f"{bot.name} is not bound yet.")
+                await asyncio.sleep(1)
+            self.logger.debug(f"{bot.name} is now bound. starting loop.")
+            while bot.name in list(self._bots.keys()) and self._bots[bot.name] is not None:
+                data = await bot.recv()
+                if data:
+                    asyncio.create_task(self.try_run(self.on_socket_message(bot, data)))
+                else:
+                    if bot.name in list(self._bots.keys()):
+                        self._bots.pop(bot.name)
+                        self.logger.error(f"Connection with {bot.name} has closed.")
+                        # await self.hook(f"Connection with {connection.name} has closed unexpectedly.")
+                    break
+        except asyncio.CancelledError:
+            self.logger.debug("Task was cancelled.")
+        bot._closed = datetime.datetime.now() if not bot._closed else bot._closed
+        self.logger.info(f"No longer watching for messages from {bot.name}.")
+        asyncio.create_task(self.try_run(self.on_bot_disconnect(bot)))
+
+    async def process_action_req(self, data):
+        """
+        Processes messages indicated as requests for Marvin to perform an action.
+        """
+        details = data['details']
+        if isinstance(details, list) and len(details) > 1:
+            if details[0] == 'closeServer':
+                self.logger.info(f"Closing server; requested by {data['from']}.")
+                await self.close()
+            elif details[0] == 'closeBot':
+                to_close = self._bots[data[1]]
+                if to_close in list(self._bots.keys()) and self._bots[to_close].is_active():
+                    self.logger.info(f"Closing {to_close}; requested by {data['from']}.")
+                    await to_close.close()
+            elif details[0] == 'killBot':
+                to_kill = self._bots[data[1]]
+                if to_kill in list(self._bots.keys()) and self._bots[to_kill].is_active():
+                    self.logger.info(f"Terminating {to_kill}; requested by {data['from']}.")
+                    await self.kill_process(to_kill)
+            elif details[0] == 'startBot':
+                to_start = self._bots[data[1]]
+                if to_start not in list(self._bots.keys()):
+                    self.logger.info(f"Starting {to_start}; requested by {data['from']}.")
+                    await self.start_bot(details[1])
+        elif isinstance(details, dict):
+            _last = self
+            for key in (details := data['details']).keys():
+                ref = None
+                try:
+                    ref = getattr(_last, key)
+                except AttributeError:
+                    pass
+                if details[key] is None:
+                    _last = ref
+                    continue
+                if ref:
+                    if type((kwargs := details[key])) == dict:
+                        _last = ref(**kwargs)
+                    elif type((args := details[key])) in [list, tuple]:
+                        _last = ref(*args)
+                    elif type((arg := details[key])) in [str, int]:
+                        _last = ref(arg)
+            await _last
+
+    async def process_data_req(self, data):
+        """
+        Processes messages indicated as requests for some kind of data.
+        Currently only works for bot and system metrics.
+        """
+        self.logger.debug(f"Processing data request from {data['from']}: {data['details']}")
+        details = data['details']
+        if isinstance(details, list) and len(details) > 0:
+            if details[0] == 'metrics':
+                self.logger.info(f"Obtaining metrics data for {details[1]}; requested by {data['from']}")
+                result = await self.metrics(details[1])
+                response = {'type': 'response', 'details': result}
+                await self._bots[data['from']].send(response)
+                self.logger.debug("Metrics data sent.")
+            else:
+                self.logger.debug(f"Data request '{details[0]}")
+
+    async def process_alert(self, data):
+        # TODO: should process intentional connection loss from client side
+        # should have same cleanup as bot.close()
+        pass
+
+    async def process_response(self, data):
+        """
+        Processes messages indicated as responses to a request from this bot.
+        """
+        self.logger.debug(f"Processing response data from {data['from']}: {data['details']}")
+        details = data['details']  # {'status': True, 'timestamp': datetime}
+        status = {'success': True, 'failed': False}[details.pop('status')]
+        request_timestamp = details.pop('timestamp')
+        if (key := (data['from'], request_timestamp)) in list(self._response_queue.keys()):
+            self.logger.debug(f"Setting _response_queue[{key}] to {status}.")
+            self._response_queue[key] = status, details
+        else:
+            self.logger.debug(f"Response data not identified in _response_queue: {key} - {self._response_queue.keys()}")
+
+    async def check_for_response(self, key):
+        # literally exists to avoid blocking
+        # it's useful to have a periodic "filler" async call inside the while loop
+        return key in list(self._response_queue.keys())
+
+    async def wait_for_response(self, data, timeout=10):
+        """
+        Waits for a response to outgoing message "data".
+        Timeout indicates how long in seconds to wait before timing out.
+        Returns None on failure or timeout.
+        """
+        self.logger.info(f"wait_for response called, data: {data}")
+        t = time.monotonic()
+        key = (data['to'], data['timestamp'])
+        self._response_queue[key] = None
+        # response_queue[key] should be True, False, or None depending on the status of the action
+        self.logger.debug(f"Waiting for response for {key}.\n_response_queue: {self._response_queue.keys()}")
+        while time.monotonic() - t < timeout:
+            if await self.check_for_response(key):
+                status = self._response_queue[key]
+                if status is None:
+                    # None means it's still waiting on a response
+                    pass
+                elif type(status) is tuple and len(status) == 2:
+                    # first element will be True if success, False if failed.
+                    # second element will be dict containing extra into transmitted along with the response
+                    self.logger.debug(f"Response has been detected for {key}. Returning.")
+                    self._response_queue.pop(key)
+                    return status
+                elif status in [True, False]:
+                    # will be True if success, False if failed.
+                    self.logger.debug(f"Response has been detected for {key}. Returning.")
+                    self._response_queue.pop(key)
+                    return status, None
+                else:
+                    # function will return if something unexpected is detected
+                    self.logger.debug(f"Invalid response detected for {key}. Continuing")
+                    continue
+            else:
+                self.logger.debug(f"Key {key} is not in response queue. Exiting wait_for_response.\n"
+                                  f"_response_queue: {self._response_queue.keys}")
+                return
+            await asyncio.sleep(.01)
+        self.logger.debug(f"Task wait_for_response has timed out. Removing {key} from response queue.")
+        self._response_queue.pop(key)
+
+    async def ping(self, bot_name):
+        if bot_name in list(self._bots.keys()) and self._bots[bot_name].is_active():
+            self.logger.debug(f"Pinging {bot_name}.")
+            bot = self._bots[bot_name]
+            data = {'type': 'ping'}
+            t = time.monotonic()
+            sent = await bot.send(data)
+            result = await self.wait_for_response(sent)
+            if result is None or type(result) is not tuple:
+                return
+            else:
+                if len(result) != 2:
+                    return
+                details = result[1]
+                delta = time.monotonic() - t
+                try:
+                    p = details.pop('discordPing')
+                except KeyError:
+                    p = None
+                return delta, p
+
+    async def pong(self, data):
+        self.logger.debug(f"Pinged by {data['from']}. Ponging.")
+        if data['from'] in list(self._bots.keys()):
+            _pong = {'type': 'pong', 'details': {'status': 'success', 'timestamp': data['timestamp'], 'discordPing': None}}
+            await self._bots[data['from']].send(_pong)
+            self.logger.debug(f"Pong sent. ({data['from']})")
+        else:
+            self.logger.debug(f"Pong failed because the source could not be found. ({data['from']})")
 
     async def start_bot(self, name):
         self.logger.info(f"Starting {name}.")
@@ -312,6 +633,7 @@ class Marvin:
             result['io_bytes'] = {'read': _io.bytes_recv, 'write': _io.bytes_sent}
             self.logger.debug(f"Sending system metrics: {result}")
             return result
+        ping = None
         started_at = None
         stopped_at = None
         if who == 'marvin':
@@ -321,6 +643,7 @@ class Marvin:
         elif who in list(self._bots.keys()):
             bot = self._bots[who]
             p = await self._bots[who].get_process()
+            ping = await self.ping(who)
             started_at = bot._started_at
             stopped_at = bot.is_closed()
 
@@ -328,6 +651,12 @@ class Marvin:
         result['started_at'] = started_at
         result['stopped_at'] = stopped_at
 
+        if p is None:
+            # no process found
+            if ping:
+                result['s_ping'], result['d_ping'] = float(ping[0]), float(ping[1])
+            self.logger.debug(f"No process found. Sending incomplete metrics for {who}: {result}")
+            return result
         try:
             with p.oneshot():
                 result['status'] = p.status()
@@ -338,10 +667,14 @@ class Marvin:
                 result['io_count'] = {'read': _io.read_count, 'write': _io.write_count}
                 result['io_bytes'] = {'read': _io.read_bytes, 'write': _io.write_bytes}
 
+                result['ping'] = ping
+
                 self.logger.debug(f"Sending metrics for {who}: {result}")
                 return result
         except psutil.AccessDenied:
             self.logger.debug(f"Access Denied. Sending incomplete metrics for {who}: {result}")
+            if ping:
+                result['ping'] = ping
             return result
 
     async def check_metrics(self):
@@ -503,14 +836,21 @@ class Marvin:
             exit()
 
     async def start(self):
+        self.logger.debug("Initializing server.")
+        # TODO: unix server if linux
+        self._server = await asyncio.start_server(self.on_connection, 'localhost', self._port, loop=self.loop)
+        self.logger.info("Starting server.")
         await self.read_properties()
         await self.setup_webhook()
-        self.logger.debug("Starting bots.")
-        to_start = self._properties['startup'] if 'startup' in self._properties.keys() else self._startup_bots
-        for bot_name in to_start:
-            await self.start_bot(bot_name)
-        self.logger.info("Starting metrics loop.")
-        asyncio.create_task(self.try_run(self.metrics_loop()))
+        async with self._server:
+            self.logger.debug("Starting bots.")
+            to_start = self._properties['startup'] if 'startup' in self._properties.keys() else self._startup_bots
+            for bot_name in to_start:
+                await self.start_bot(bot_name)
+            self.logger.info("Starting metrics loop.")
+            asyncio.create_task(self.try_run(self.metrics_loop()))
+            self.logger.debug("Serving forever.")
+            await self._server.serve_forever()
 
     def run(self, debug=False):
 
