@@ -201,7 +201,7 @@ class Marvin:
 
     async def read_properties(self):
         try:
-            with open("configs/marvin.yaml") as f:
+            with open(f"{utility.HOME_DIR}/configs/marvin.yaml") as f:
                 self._properties = yaml.load(f, yaml.Loader)
             return True
         except yaml.YAMLError:
@@ -221,7 +221,7 @@ class Marvin:
     async def start_bot(self, name):
         self.logger.info(f"Starting {name}.")
         if sys.platform == 'linux':
-            p = await asyncio.create_subprocess_exec('python3.8', f'{utility.home_dir}/launcher.py', name, '--debug',
+            p = await asyncio.create_subprocess_exec('python3.8', f'{utility.HOME_DIR}/launcher.py', name, '--debug',
                                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
         else:
             p = await asyncio.create_subprocess_exec('python', 'launcher.py', name, '--debug',

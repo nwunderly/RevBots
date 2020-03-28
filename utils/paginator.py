@@ -43,7 +43,12 @@ class Pages:
         if left_over:
             pages += 1
         self.maximum_pages = pages
-        self.embed = discord.Embed(colour=self.bot.EmbedColor)
+        embed_color = None
+        try:
+            embed_color = self.bot.properties.embed_color
+        except AttributeError:
+            pass
+        self.embed = discord.Embed(colour=embed_color if embed_color else discord.Color.blurple())
         self.paginating = len(entries) > per_page
         self.show_entry_count = show_entry_count
         self.reaction_emojis = [
@@ -51,7 +56,7 @@ class Pages:
             ('\N{BLACK LEFT-POINTING TRIANGLE}', self.previous_page),
             ('\N{BLACK RIGHT-POINTING TRIANGLE}', self.next_page),
             ('\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}', self.last_page),
-            ('\N{INPUT SYMBOL FOR NUMBERS}', self.numbered_page ),
+            ('\N{INPUT SYMBOL FOR NUMBERS}', self.numbered_page),
             ('\N{BLACK SQUARE FOR STOP}', self.stop_pages),
             ('\N{INFORMATION SOURCE}', self.show_help),
         ]

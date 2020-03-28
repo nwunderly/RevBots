@@ -2,7 +2,7 @@
 import discord
 from discord.ext import commands
 
-from utils.aws import Table
+from utils.db import Table
 from utils.utility import module_logger
 
 empty = {

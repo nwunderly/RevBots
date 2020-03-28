@@ -1,14 +1,14 @@
 
 [Unit]
 
-Description=Bulbe
+Description=Dev Bulbe instance
 
 StartLimitIntervalSec=5min
 StartLimitBurst=5
 
 [Service]
 
-ExecStart=/usr/bin/python3.8 /home/bots/launcher.py bulbe
+ExecStart=/usr/bin/python3.8 /home/bots/launcher.py kippy
 
 Environment=PYTHONUNBUFFERED=1
 

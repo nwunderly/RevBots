@@ -6,10 +6,11 @@ from argparse import ArgumentParser
 
 from discord.ext import commands
 
-from bots import evalbot, bulbe, marvin, revbot, juan
+from bots import evalbot, bulbe, revbot, juan, clippy
+# from bots import marvin
 from utils import checks
 from authentication import authentication
-from utils.utility import setup_logger, module_logger
+from utils.utility import setup_logger, module_logger, HOME_DIR
 
 
 class Debug(commands.Cog):
@@ -26,26 +27,12 @@ class Debug(commands.Cog):
     async def __test(self, ctx):
         await ctx.send("hello.")
 
-    @commands.command()
-    async def __ping(self, ctx, bot):
-        m = await ctx.send("Pinging...")
-        result = await self.bot.ping(bot)
-        if result:
-            p1, p2 = result
-        else:
-            p1, p2 = None, None
-        if p1 is not None:
-            p1 = f"`{p1:.4}s`"
-        if p2 is not None:
-            p2 = f"`{p2:.4}s`"
-        await m.edit(content=f"Pong! {p1}, {p2}")
 
-
-def start(name, debug, use_socket, persist):
+def start(name, debug):
     if name == "marvin":
         start_marvin(debug)
     else:
-        start_bot(name, debug, use_socket, persist)
+        start_bot(name, debug)
 
 
 def start_marvin(debug=False):
@@ -58,14 +45,14 @@ def start_marvin(debug=False):
         exit(0)
 
 
-def start_bot(name, debug=False, use_socket=True, persist=False):
-    close_on_disconnect = not persist
-    logger = setup_logger(name)
+def start_bot(name, debug=False):
+    bot_logger = setup_logger(name)
+    logger = module_logger(name, "launcher")
     module_logger(name, 'discord', logging.INFO)
 
     logger.info(f"Starting {name}.")
 
-    with open("configs/marvin.yaml") as f:
+    with open(f"{HOME_DIR}/configs/marvin.yaml") as f:
         _info = yaml.load(f, yaml.Loader)
 
     if name in _info['launcher'].keys():
@@ -81,23 +68,34 @@ def start_bot(name, debug=False, use_socket=True, persist=False):
     #     pass
 
     if classname == 'revbot.RevBot':
-        bot = revbot.RevBot(command_prefix='__', name=name, logger=logger, use_socket=use_socket, close_on_connection_lost=close_on_disconnect)
+        bot = revbot.RevBot(command_prefix='__', name=name, logger=bot_logger)
     elif classname == 'bulbe.Bulbe':
-        bot = bulbe.Bulbe(name=name, logger=logger, use_socket=use_socket, close_on_connection_lost=close_on_disconnect)
+        bot = bulbe.Bulbe(name=name, logger=bot_logger)
     elif classname == 'evalbot.EvalBot':
         bot = evalbot.EvalBot()
     elif classname == 'juan.Juandissimo':
-        bot = juan.Juandissimo(logger, use_socket=use_socket)
+        bot = juan.Juandissimo(bot_logger)
+    elif classname == 'clippy.Clippy':
+        bot = clippy.Clippy(bot_logger)
     else:
         logger.error("No class found. Closing.")
-        exit(0)
+        exit(1)
 
     if sys.platform != 'linux' or debug:
         try:
+            logger.info("Adding debug cog.")
             bot.add_cog(Debug(bot))
-            bot.add_cog(evalbot.EvalCog(bot))
         except commands.ExtensionFailed:
             pass
+
+    # todo remove this when admin.py is working
+    try:
+        logger.info("Adding eval cog.")
+        bot.add_cog(evalbot.EvalCog(bot))
+    except commands.ExtensionFailed:
+        pass
+
+    logger.info("Calling run method.")
     try:
         bot.run(authentication.tokens[name])
     finally:
@@ -110,12 +108,10 @@ def main():
     parser = ArgumentParser(description="Start a bot")
     parser.add_argument('bot')
     parser.add_argument('--debug', '-d', action='store_true')
-    parser.add_argument('--no-socket', '-ns', action='store_false')
-    parser.add_argument('--persist', '-p', action='store_true')
 
     args = parser.parse_args()
 
-    start(args.bot, args.debug, args.no_socket, args.persist)
+    start(args.bot, args.debug)
 
 
 if __name__ == "__main__":

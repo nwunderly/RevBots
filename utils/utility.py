@@ -5,13 +5,11 @@ import logging
 import sys
 import datetime
 
-from authentication.authentication import linux_username
-
 
 if sys.platform == 'linux':
-    home_dir = f'/home/{linux_username}'
+    HOME_DIR = f'/home/bots'
 else:
-    home_dir = ''
+    HOME_DIR = ''
 
 
 def list_by_category(guild):
@@ -30,7 +28,7 @@ def setup_logger(name):
     time = f"{d.month}-{d.day}_{d.hour}h{d.minute}m"
 
     if sys.platform == 'linux':
-        filename = home_dir + '/logs/{}/{}.log'
+        filename = HOME_DIR + '/logs/{}/{}.log'
         level = logging.DEBUG  # INFO
     else:
         filename = '../RevBots/logs/{}/{}.log'
@@ -58,7 +56,7 @@ def module_logger(name, extension, level=logging.DEBUG, stream=True, file=True):
     time = f"{d.month}-{d.day}_{d.hour}h{d.minute}m"
 
     if sys.platform == 'linux':
-        filename = home_dir + '/logs/{}/{}.log'
+        filename = HOME_DIR + '/logs/{}/{}.log'
     else:
         filename = '../RevBots/logs/{}/{}.log'
     # uses name to log in the same file as bot logger

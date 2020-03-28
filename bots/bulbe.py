@@ -1,4 +1,3 @@
-# version 2.0
 
 import discord
 from discord.ext import tasks, commands
@@ -11,7 +10,7 @@ import collections
 
 # custom imports
 from bots.revbot import RevBot
-from utils.aws import Table
+from utils.db import Table
 from utils import utility
 
 
@@ -35,8 +34,8 @@ def prefix(bot, message, only_guild_prefix=False):
 
 
 class Bulbe(RevBot):
-    def __init__(self, name, logger=None, use_socket=True, command_prefix=prefix, **kwargs):
-        super().__init__(name, logger=logger, use_socket=use_socket, command_prefix=command_prefix, case_insensitive=True,
+    def __init__(self, name, logger=None, command_prefix=prefix, **kwargs):
+        super().__init__(name, logger=logger, command_prefix=command_prefix, case_insensitive=True,
                          description='Best Bot <3', **kwargs)
         self._nwunder = None
         self.config = collections.defaultdict(default_factory=lambda: {})
@@ -58,7 +57,6 @@ class Bulbe(RevBot):
             self.logger.error("on_ready called but Properties object has not been defined.")
         self.update_presence.start()
         self.logger.info("Bot is ready.")
-        # await self.close() # todo
 
     # async def on_error(self, event_method, *args, **kwargs):
     #     # self.logger.error(f"Error in event {str(event_method)}", exc_info=True, stack_info=True)
@@ -135,19 +133,6 @@ class Bulbe(RevBot):
         if activity:
             await self.change_presence(activity=activity)
 
-    async def read_properties(self):
-        try:
-            if (filename := f"{self._name}.yaml") in os.listdir(f"{utility.home_dir}/configs"):
-                with open(f"{utility.home_dir}/configs/" + filename) as f:
-                    properties = yaml.load(f, yaml.Loader)
-            else:
-                with open(f"{utility.home_dir}/configs/default.yaml") as f:
-                    properties = yaml.load(f, yaml.Loader)
-            self.properties = self.Properties(properties)
-            return True
-        except yaml.YAMLError:
-            return False
-
     def blacklisted(self, *ids):
         for i in ids:
             if i in self._user_blacklist or i in self._guild_blacklist:
@@ -182,35 +167,17 @@ class Bulbe(RevBot):
         except Exception:
             return False
 
-    class Properties:
-        def __init__(self, properties):
-            self.properties_dict = properties
-            for key in properties.keys():
-                value = properties[key]
-                key = key.replace(" ", "_")
-                setattr(self, key, value)
-
-        async def convert(self, bot):
-            converters = {
-                "embed_color": lambda c: discord.Color(int(c, 16)),
-                "socket": bool,  # deprecated
-                "logging_channel": bot.get_channel
-            }
-            for key in self.__dict__:
-                if key in converters.keys():
-                    attr = getattr(self, key)
-                    value = converters[key](attr)
-                    setattr(self, key, value)
-
     async def setup(self):
+        self.logger.info("Setup method called.")
         self.logger.info('Loading YAML data.')
         p = await self.read_properties()
         if not p:
             self.logger.error('Error reading properties file. Shutting down.')
             await self.close()
+        self.logger.info('YAML data loaded.')
+        self.logger.info("Setting up DynamoDB table.")
         self.table = Table('Bulbe')
         self.logger.info('Loading cogs.')
-        self.logger.info('YAML data loaded.')
         for cog in self.properties.cogs:
             self.logger.info(f'Loading {cog}.')
             try:
@@ -223,14 +190,7 @@ class Bulbe(RevBot):
             self.logger.error("Error reading blacklist file. Bot will not have blacklists.")
         self.logger.info('Setup complete.')
 
-    async def close(self):
-        self.logger.debug("Bulbe: Received command to shut down. Beginning safe shutdown sequence.")
-        # self.logger.info("Locking bot.")
-        # await self.lock()
+    async def cleanup(self):
         self.logger.info("Dumping data.")
         self.write_blacklists()
-        # write_guild_data()
-        self.logger.info("Closing connection to socket.")
-        # close() unloads cogs
-        await super().close()
 

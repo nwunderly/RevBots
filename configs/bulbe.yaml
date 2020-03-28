@@ -1,7 +1,7 @@
 
 name: bulbe
-version: 2.0.0a
-prefix: "__"
+version: 2.0.1
+prefix: "+"
 
 embed color: 2ecc71
 
@@ -9,9 +9,10 @@ logging channel: 559509631466995749
 invite permissions: 2110258423
 
 cogs:
+  - bots.evalbot.evalcog
   - cogs.config
-  - cogs.admin
-  - cogs.moderation
+#  - cogs.admin
+#  - cogs.moderation
 
 unload:
   - cogs.config

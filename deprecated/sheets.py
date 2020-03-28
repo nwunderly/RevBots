@@ -7,9 +7,8 @@ from google.auth.transport.requests import Request
 
 import ast
 import sys
-import logging
 
-from utils.spreadsheet_snippets import SpreadsheetSnippets
+from deprecated.spreadsheet_snippets import SpreadsheetSnippets
 from utils.utility import module_logger, stream_logger
 from authentication.authentication import linux_username
 

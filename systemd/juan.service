@@ -1,14 +1,14 @@
 
 [Unit]
 
-Description=Bulbe
+Description=Juandissimo Magnifico
 
 StartLimitIntervalSec=5min
 StartLimitBurst=5
 
 [Service]
 
-ExecStart=/usr/bin/python3.8 /home/bots/launcher.py bulbe
+ExecStart=/usr/bin/python3.8 /home/bots/launcher.py juan
 
 Environment=PYTHONUNBUFFERED=1
 

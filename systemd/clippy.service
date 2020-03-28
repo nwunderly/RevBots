@@ -1,14 +1,14 @@
 
 [Unit]
 
-Description=Bulbe
+Description=Bot Manager
 
 StartLimitIntervalSec=5min
 StartLimitBurst=5
 
 [Service]
 
-ExecStart=/usr/bin/python3.8 /home/bots/launcher.py bulbe
+ExecStart=/usr/bin/python3.8 /home/bots/launcher.py clippy
 
 Environment=PYTHONUNBUFFERED=1
 
@@ -16,7 +16,7 @@ Restart=on-failure
 
 #Type=notify
 
-User=bots
+#User=bots
 
 #WatchdogSec=30s
 

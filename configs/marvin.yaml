@@ -9,7 +9,7 @@ launcher:
   bulbe: bulbe.Bulbe
   kippy: bulbe.Bulbe
   juan: juan.Juandissimo
-  clippy: revbot.RevBot
+  clippy: clippy.Clippy
 
 py files:
   honk: honk.py

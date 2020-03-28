@@ -1,7 +1,7 @@
 
 name: kippy
-version: 2.0.0a
-prefix: "__"
+version: 2.0.1
+prefix: "="
 
 embed color: 2ecc71
 
