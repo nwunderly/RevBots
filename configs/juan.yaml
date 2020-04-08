@@ -2,7 +2,7 @@
 # WHEN UPDATING THIS FILE BE SURE TO UPDATE THE NAMED TUPLE IN JUAN.PY
 
 name: juan
-version: 2.0.1
+version: 2.1.0
 prefix: ">"
 
 table: Juan
@@ -12,6 +12,7 @@ guild: 576168356823040010
 cogs:
   - cogs.juan.admin
   - cogs.juan.dpy
+  - cogs.juan.fanclub
 
 perms:
   docs:

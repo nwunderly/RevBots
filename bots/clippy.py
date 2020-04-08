@@ -10,13 +10,16 @@ from bots.revbot import RevBot
 from bots.evalbot import EvalCog
 
 
+VERSION = "2.1.0"
+
+
 class Clippy(RevBot):
-    def __init__(self, logger=None, command_prefix="systemctl ", **kwargs):
+    def __init__(self, logger=None, command_prefix="//", **kwargs):
         super().__init__("Clippy", logger=logger, command_prefix=command_prefix, case_insensitive=True,
                          description="Clippy, professional bot manager", **kwargs)
         self._nwunder = None
-        self.properties = None
         self.table = None
+        self.version = VERSION
 
     async def on_ready(self):
         self.logger.info('Logged in as {0.user}.'.format(self))

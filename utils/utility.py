@@ -9,7 +9,7 @@ import datetime
 if sys.platform == 'linux':
     HOME_DIR = f'/home/bots'
 else:
-    HOME_DIR = ''
+    HOME_DIR = r'C:\Users\nwund\GitHub\RevBots'
 
 
 def list_by_category(guild):
@@ -22,17 +22,15 @@ def list_by_category(guild):
     return channels
 
 
-def setup_logger(name):
+def setup_logger(name, level=logging.INFO):
     logger = logging.getLogger(name)
     d = datetime.datetime.now()
     time = f"{d.month}-{d.day}_{d.hour}h{d.minute}m"
 
     if sys.platform == 'linux':
         filename = HOME_DIR + '/logs/{}/{}.log'
-        level = logging.DEBUG  # INFO
     else:
         filename = '../RevBots/logs/{}/{}.log'
-        level = logging.DEBUG
 
     file_handler = logging.FileHandler(filename.format(name, time))
     # file_handler.setLevel(level)

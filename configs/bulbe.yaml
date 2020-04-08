@@ -1,6 +1,6 @@
 
 name: bulbe
-version: 2.0.1
+version: 2.1.1
 prefix: "+"
 
 embed color: 2ecc71
@@ -9,30 +9,21 @@ logging channel: 559509631466995749
 invite permissions: 2110258423
 
 cogs:
-  - bots.evalbot.evalcog
-  - cogs.config
-#  - cogs.admin
-#  - cogs.moderation
-
-unload:
-  - cogs.config
+  - cogs.bulbe.admin
+  - cogs.bulbe.config
+  - cogs.bulbe.devtools
 
 bot perms:
   options:
     - admin       # all
-    - aws         # eval, shell, start bots
+    - root        # eval, shell
     - manager     # manage this bot (everything but eval/shell, permissions)
     - config      # global config access
     - moderator   # global server_admin permissions
   204414611578028034: # nwunder
     - admin
-  426550338141683713: # SweetDee#6550
-    - config
-    - moderator
-    - manager
 
 activities:
-  - playing version 2.0.0a!
   - playing with other bulbasaurs
   - listening to bulbasaur sounds
   - playing bulbe games

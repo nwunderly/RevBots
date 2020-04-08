@@ -101,3 +101,7 @@ class EvalCog(commands.Cog):
             else:
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
+
+
+def setup(bot):
+    bot.add_cog(EvalCog(bot))

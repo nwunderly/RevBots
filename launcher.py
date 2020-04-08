@@ -13,12 +13,20 @@ from authentication import authentication
 from utils.utility import setup_logger, module_logger, HOME_DIR
 
 
+bots = {
+    'bulbe': 'bulbe.Bulbe',
+    'kippy': 'bulbe.Bulbe',
+    'juan': 'juan.Juandissimo',
+    'clippy': 'clippy.Clippy',
+}
+
+
 class Debug(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command()
-    @checks.bot_admin()
+    @commands.is_owner()
     async def __kill(self, ctx):
         await ctx.send("Closing bot.")
         await self.bot.close()
@@ -28,54 +36,38 @@ class Debug(commands.Cog):
         await ctx.send("hello.")
 
 
-def start(name, debug):
-    if name == "marvin":
-        start_marvin(debug)
+def start(name, debug=False):
+    if sys.platform != 'linux' or debug:
+        level = logging.DEBUG
     else:
-        start_bot(name, debug)
-
-
-def start_marvin(debug=False):
-    logger = setup_logger("marvin")
-    marv = marvin.Marvin(logger)
-    try:
-        marv.run(debug=debug)
-    finally:
-        marv.logger.info("Bot closed.")
-        exit(0)
-
-
-def start_bot(name, debug=False):
+        level = logging.INFO
     bot_logger = setup_logger(name)
-    logger = module_logger(name, "launcher")
+    logger = module_logger(name, "launcher", level)
     module_logger(name, 'discord', logging.INFO)
 
     logger.info(f"Starting {name}.")
 
-    with open(f"{HOME_DIR}/configs/marvin.yaml") as f:
-        _info = yaml.load(f, yaml.Loader)
-
-    if name in _info['launcher'].keys():
-        classname = _info['launcher'][name]
+    if name in bots.keys():
+        classname = bots[name]
     else:
-        classname = _info['launcher']['default']
+        classname = None
 
     bot = None
 
-    # if classname == 'discord.Client':
-    #     pass
-    # elif classname == 'commands.Bot':
-    #     pass
-
     if classname == 'revbot.RevBot':
+        logger.debug("RevBot class selected. Initializing.")
         bot = revbot.RevBot(command_prefix='__', name=name, logger=bot_logger)
     elif classname == 'bulbe.Bulbe':
+        logger.debug("Bulbe class selected. Initializing.")
         bot = bulbe.Bulbe(name=name, logger=bot_logger)
     elif classname == 'evalbot.EvalBot':
+        logger.debug("EvalBot class selected. Initializing.")
         bot = evalbot.EvalBot()
     elif classname == 'juan.Juandissimo':
+        logger.debug("Juandissimo class selected. Initializing.")
         bot = juan.Juandissimo(bot_logger)
     elif classname == 'clippy.Clippy':
+        logger.debug("Clippy class selected. Initializing.")
         bot = clippy.Clippy(bot_logger)
     else:
         logger.error("No class found. Closing.")
@@ -88,19 +80,17 @@ def start_bot(name, debug=False):
         except commands.ExtensionFailed:
             pass
 
-    # todo remove this when admin.py is working
-    try:
-        logger.info("Adding eval cog.")
-        bot.add_cog(evalbot.EvalCog(bot))
-    except commands.ExtensionFailed:
-        pass
-
     logger.info("Calling run method.")
     try:
         bot.run(authentication.tokens[name])
     finally:
-        logger.info("Bot closed.")
-        exit(0)
+        try:
+            exit_code = bot._exit_code
+        except AttributeError:
+            logger.info("Bot's exit code could not be retrieved.")
+            exit_code = 0
+        logger.info(f"Bot closed with exit code {exit_code}.")
+        exit(exit_code)
 
 
 def main():

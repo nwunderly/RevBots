@@ -5,46 +5,42 @@ from discord.ext import tasks, commands
 import yaml
 import os
 import sys
+import copy
 import random
 import collections
 
 # custom imports
 from bots.revbot import RevBot
 from utils.db import Table
-from utils import utility
+from utils import checks, utility
 
 
 def prefix(bot, message, only_guild_prefix=False):
     default = bot.properties.prefix if bot.properties else bot.default_prefix
     if not message.guild:
         return commands.when_mentioned(bot, message) + [default]
-    if message.guild.id not in bot.config.keys():
-        guild_prefix = default
-    else:
-        config = bot.config[message.guild.id]
-        if 'prefix' in config.keys():
-            p = config.get('prefix')
-            guild_prefix = p if p else default
-        else:
-            guild_prefix = default
+    config = bot.config.get_config(message.guild)
+    p = config['prefix']
+    p = p if p else default
     if only_guild_prefix:
-        return guild_prefix
+        return p
     else:
-        return commands.when_mentioned(bot, message) + [guild_prefix]
+        return commands.when_mentioned(bot, message) + [p]
 
 
 class Bulbe(RevBot):
-    def __init__(self, name, logger=None, command_prefix=prefix, **kwargs):
-        super().__init__(name, logger=logger, command_prefix=command_prefix, case_insensitive=True,
+    def __init__(self, name, logger, **kwargs):
+        super().__init__(name, logger=logger, command_prefix=prefix, case_insensitive=True,
                          description='Best Bot <3', **kwargs)
+        self._init_args = [name, logger]
+        self._init_kwargs = kwargs
         self._nwunder = None
-        self.config = collections.defaultdict(default_factory=lambda: {})
+        self.config = None
         self._user_blacklist = []
         self._guild_blacklist = []
         self._locked = False
-        self.properties = None
         self.table = None
-        # self.add_check(checks.global_checks) todo
+        self.add_check(checks.global_checks)
         self.logger.info(f'Initialization complete. [{name}]')
 
     async def on_ready(self):
@@ -56,16 +52,7 @@ class Bulbe(RevBot):
         else:
             self.logger.error("on_ready called but Properties object has not been defined.")
         self.update_presence.start()
-        self.logger.info("Bot is ready.")
-
-    # async def on_error(self, event_method, *args, **kwargs):
-    #     # self.logger.error(f"Error in event {str(event_method)}", exc_info=True, stack_info=True)
-    #     self.logger.error(f'Ignoring exception in {event_method}', exc_info=True)
-    #     self.logger.error(f"(on_error) Traceback.format_exc():\n{traceback.format_exc()}")
-    #
-    # async def on_command_error(self, context, exception):
-    #     self.logger.error(f'Ignoring exception in command {context.command}', exc_info=True)
-    #     self.logger.error(f"(on_command_error) Traceback.format_exc():\n{traceback.format_exc()}")
+        self.logger.info(f"Bot is ready, version {self.properties.version}!")
 
     async def on_message(self, message):
         if message.author.bot:
@@ -97,14 +84,13 @@ class Bulbe(RevBot):
         self.logger.info(f"Received direct message from {message.author} ({message.author.id}): \n"
                          f"{message.content}\n"
                          f"Attachments: {attachments}")
-        # channel = self.get_channel(self._properties.logging_channel)
         channel = self.properties.logging_channel
         if len(message.content) > 1500:
             content = message.clean_content[:1500] + f".... {len(message.clean_content)}"
         else:
             content = message.clean_content
         forward_message = f"Received direct message from {message.author} ({message.author.id}):\n{content}"
-        forward_message += ("\nAttachments:" + '\n'.join([str(a.url) for a in message.attachments])) if message.attachments else ""
+        forward_message += ("\nAttachments:\n" + '\n'.join([str(a.url) for a in message.attachments])) if message.attachments else ""
         await channel.send(forward_message)
 
     async def process_mention(self, message):
@@ -148,7 +134,7 @@ class Bulbe(RevBot):
             self._guild_blacklist = [guild[0] for guild in guilds]
             return True
         except Exception as e:
-            print(str(e))
+            self.logger.error("Error in read_blacklists.", exc_info=True)
             self._user_blacklist, self._guild_blacklist = [], []
             return False
 
@@ -168,27 +154,28 @@ class Bulbe(RevBot):
             return False
 
     async def setup(self):
-        self.logger.info("Setup method called.")
         self.logger.info('Loading YAML data.')
         p = await self.read_properties()
         if not p:
             self.logger.error('Error reading properties file. Shutting down.')
-            await self.close()
-        self.logger.info('YAML data loaded.')
+            await self.close(-1)
         self.logger.info("Setting up DynamoDB table.")
-        self.table = Table('Bulbe')
+        try:
+            self.table = Table('Bulbe')
+        except:
+            self.logger.error("Error setting up table. Shutting down.")
+            await self.close(-1)
         self.logger.info('Loading cogs.')
         for cog in self.properties.cogs:
-            self.logger.info(f'Loading {cog}.')
+            self.logger.info(f' -> {cog}')
             try:
                 self.load_extension(cog)
-                self.logger.info(f"Loaded extension {cog}.")
+                self.logger.info(f"    Loaded {cog}.")
             except Exception as e:
-                self.logger.error(f"Failed to load extension {cog}.", exc_info=True)
+                self.logger.error(f"    Failed to load extension {cog}.", exc_info=True)
         b = self.read_blacklists()
         if not b:
-            self.logger.error("Error reading blacklist file. Bot will not have blacklists.")
-        self.logger.info('Setup complete.')
+            self.logger.error("Error reading blacklists. Continuing without blacklists")
 
     async def cleanup(self):
         self.logger.info("Dumping data.")

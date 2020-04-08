@@ -12,8 +12,10 @@ import os
 from utils import utility
 from utils.utility import setup_logger
 
+VERSION = "1.0.2"
 
-class RevBot(commands.Bot):
+
+class RevBot(commands.AutoShardedBot):
     """
 
     """
@@ -21,12 +23,13 @@ class RevBot(commands.Bot):
         self._default_prefix = '__'
         command_prefix = command_prefix if command_prefix else self._default_prefix
         super().__init__(command_prefix, **kwargs)
-        self.__future = None
-        self._revbot_version = '2.0.1'
+        self._revbot_version = VERSION
         self._name = name
+        self.properties = None
+        self._exit_code = 0
         self.logger = logger if logger else setup_logger(name)
         self.started_at = datetime.datetime.now()
-        self.logger.debug("RevBot initialization complete.")
+        self.logger.debug(f"RevBot initialization complete. [{VERSION}]")
 
     async def try_run(self, coro):
         try:
@@ -73,6 +76,7 @@ class RevBot(commands.Bot):
         Called when bot is closed, before logging out.
         Use this for any async tasks to be performed before the bot exits.
         """
+        pass
 
     async def read_properties(self):
         try:
@@ -88,22 +92,29 @@ class RevBot(commands.Bot):
             return False
 
     def run(self, *args, **kwargs):
-        self.logger.info("Run method called.")
+        self.logger.debug("Run method called.")
         super().run(*args, **kwargs)
 
     async def start(self, *args, **kwargs):
-        self.logger.info("Start method called.")
+        self.logger.debug("Start method called.")
+        try:
+            self.loop.remove_signal_handler(signal.SIGINT)
+            self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(self.close()))
+        except NotImplementedError:
+            pass
         # self.watchdog.start()
-        # self.logger.info("Watchdog loop started. Setting up.")
+        # self.logger.info("Watchdog loop started.")
+        self.logger.info("Setting up.")
         await self.setup()
-        # self.sd_notify("WATCHDOG=1")
-        self.logger.info("Calling super().start method.")
+        self.logger.debug("Setup complete.")
+        self.logger.debug("Calling super().start method.")
         await super().start(*args, **kwargs)
 
-    async def close(self):
+    async def close(self, exit_code=0):
         self.logger.debug("RevBot: Received command to shut down. Beginning safe shutdown sequence.")
+        self._exit_code = exit_code
         await self.cleanup()
-        self.logger.info("Closing connection to discord.")
+        self.logger.debug("Closing connection to discord.")
         await super().close()
 
     class Properties:
@@ -125,3 +136,10 @@ class RevBot(commands.Bot):
                     attr = getattr(self, key)
                     value = converters[key](attr)
                     setattr(self, key, value)
+
+    def Embed(self, **kwargs):
+        if not ("color" in kwargs.keys() or "colour" in kwargs.keys()):
+            kwargs['color'] = c if (c := getattr(self.properties, 'embed_color')) else discord.Color.blurple()
+        return discord.Embed(**kwargs)
+
+

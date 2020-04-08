@@ -1,6 +1,6 @@
 
 name: kippy
-version: 2.0.1
+version: 2.1.0
 prefix: "="
 
 embed color: 2ecc71
@@ -8,14 +8,14 @@ embed color: 2ecc71
 logging channel: 559509631466995749
 invite permissions: 2110258423
 
-cogs: []
-#  - cogs.admin
+cogs:
+  - cogs.bulbe.admin
 #  - cogs.moderation
 
 bot perms:
   options:
     - admin       # all
-    - aws         # eval, shell, start bots
+    - root        # eval, shell, start bots
     - manager     # manage this bot (everything but eval/shell, permissions)
     - config      # global config access
     - moderator   # global server_admin permissions
@@ -27,7 +27,6 @@ bot perms:
     - manager
 
 activities:
-  - playing version 2.0.0a!
   - playing with other bulbasaurs
   - listening to bulbasaur sounds
   - playing bulbe games

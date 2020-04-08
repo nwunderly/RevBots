@@ -14,6 +14,8 @@ Environment=PYTHONUNBUFFERED=1
 
 Restart=on-failure
 
+TimeoutStopSec=30s
+
 #Type=notify
 
 #User=bots
