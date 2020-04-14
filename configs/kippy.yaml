@@ -12,6 +12,9 @@ cogs:
   - cogs.bulbe.admin
   - cogs.bulbe.config
   - cogs.bulbe.devtools
+  - cogs.bulbe.fun
+  - cogs.bulbe.manager
+  - cogs.bulbe.utilities
 
 bot perms:
   options:

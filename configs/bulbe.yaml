@@ -13,6 +13,8 @@ cogs:
   - cogs.bulbe.config
   - cogs.bulbe.devtools
   - cogs.bulbe.fun
+  - cogs.bulbe.manager
+  - cogs.bulbe.utilities
 
 bot perms:
   options:
@@ -25,12 +27,18 @@ bot perms:
     - admin
 
 activities:
+  - playing version 2.1.2!
   - playing with other bulbasaurs
   - listening to bulbasaur sounds
   - playing bulbe games
   - watching pokemon
   - playing pokemon
-  - playing version 2.1.1!
+  - watching for +help
+  - playing with +translate!
+  - playing \#001 in the dex, \#001 in the heart
+  - playing epic bulbasaur moment
+  - playing smh my head
+  - playing ok, this is epic
 
 test messages:
   - \#001 in the dex, \#001 in the heart

@@ -222,19 +222,20 @@ class Config(commands.Cog):
         self.config.edit_section(ctx.guild.id, 'prefix', new_prefix)
         await ctx.send(f"Prefix set to `{new_prefix}`")
 
-    @configure_bot.command()
-    @checks.edit_config()
-    async def ignore(self, ctx, target: Union[TextChannel, Member, Role] = None):
-        """Sets bot to ignore commands by certain users, users with certain roles, or in a certain channel."""
-        config = self.config.get_config(ctx.guild)
-        if not target:
-            pass  # todo
-        elif isinstance(target, TextChannel):
-            pass  # todo
-        elif isinstance(target, Member):
-            pass  # todo
-        elif isinstance(target, Role):
-            pass  # todo
+    # todo
+    # @configure_bot.command()
+    # @checks.edit_config()
+    # async def ignore(self, ctx, target: Union[TextChannel, Member, Role] = None):
+    #     """Sets bot to ignore commands by certain users, users with certain roles, or in a certain channel."""
+    #     config = self.config.get_config(ctx.guild)
+    #     if not target:
+    #         pass
+    #     elif isinstance(target, TextChannel):
+    #         pass
+    #     elif isinstance(target, Member):
+    #         pass
+    #     elif isinstance(target, Role):
+    #         pass
 
     @configure_bot.command()
     @checks.edit_config()
