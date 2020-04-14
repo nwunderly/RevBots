@@ -1,6 +1,6 @@
 
 name: bulbe
-version: 2.1.1
+version: 2.1.2
 prefix: "+"
 
 embed color: 2ecc71
@@ -12,6 +12,7 @@ cogs:
   - cogs.bulbe.admin
   - cogs.bulbe.config
   - cogs.bulbe.devtools
+  - cogs.bulbe.fun
 
 bot perms:
   options:
@@ -29,6 +30,7 @@ activities:
   - playing bulbe games
   - watching pokemon
   - playing pokemon
+  - playing version 2.1.1!
 
 test messages:
   - \#001 in the dex, \#001 in the heart

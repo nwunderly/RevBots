@@ -67,6 +67,41 @@ class DevTools(commands.Cog):
             embed = self.bot.Embed(description=desc)
             await ctx.send(desc)
 
+    class FindIDArgs(commands.Converter):
+        async def convert(self, ctx, argument):
+            if argument == 'guild':
+                return ctx.guild
+            elif argument == 'channel':
+                return ctx.channel
+            elif argument == 'me':
+                return ctx.author
+            else:
+                raise commands.BadArgument
+
+    @commands.group(name='id')
+    async def find_id(self, ctx, *, target: Union[FindIDArgs, discord.TextChannel, discord.VoiceChannel, discord.Role, discord.Member, discord.User]):
+        """Attempts to convert your query to a discord object and returns its id.
+        Search order: Special args, TextChannel, VoiceChannel, Role, Member, User.
+        Special args: 'guild', 'channel', 'me'"""
+        await ctx.send(f"`{(type(target)).__name__}` **{target.name}**:  `{target.id}`")
+
+    @find_id.error
+    async def find_id_error(self, ctx, error):
+        if isinstance(error, commands.UserInputError):
+            await ctx.send("Could not locate a snowflake based on that query.")
+
+    async def channel(self, ctx, *, target):
+        pass
+
+    async def role(self, ctx, *, target):
+        pass
+
+    async def member(self, ctx, *, target):
+        pass
+
+    async def user(self, ctx, *, target):
+        pass
+
 
 def setup(bot):
     bot.add_cog(DevTools(bot))

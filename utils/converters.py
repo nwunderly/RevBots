@@ -77,3 +77,47 @@ class OptionFlag(commands.Converter):
             raise commands.BadArgument()
         return argument[2:]
 
+
+class Language(commands.Converter):
+    async def convert(self, ctx, argument):
+
+        def update_langs():
+            langs = ctx.cog.translator.get_languages(target_language='en')
+            for lang in langs:
+                ctx.cog.lang_cache[lang['name'].lower()] = lang['language']
+
+        def get_lang():
+            if argument in ctx.cog.lang_cache.keys():
+                return ctx.cog.lang_cache[argument]
+            elif argument in ctx.cog.lang_cache.values():
+                return argument
+
+        result = get_lang()
+        if result:
+            return result
+
+        update_langs()
+        result = get_lang()
+        if result:
+            return result
+
+        raise commands.BadArgument("Could not convert to a supported language.")
+
+
+class Command(commands.Converter):
+    async def convert(self, ctx, argument):
+        command = ctx.bot.get_command(argument)
+        if command:
+            return command
+        else:
+            raise commands.BadArgument("A command with this name could not be found.")
+
+
+class Module(commands.Converter):
+    async def convert(self, ctx, argument):
+        cog = ctx.bot.get_cog(argument)
+        if cog:
+            return cog
+        else:
+            raise commands.BadArgument("A module with this name could not be found.")
+

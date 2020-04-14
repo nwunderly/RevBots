@@ -18,11 +18,13 @@ async def global_checks(ctx):
         return False
     if ctx.bot._locked:
         return False
-    if ctx.bot.blacklisted([ctx.author.id, ctx.guild.id, ctx.guild.owner.id]):
+    if ctx.bot.blacklisted(ctx.author.id, ctx.guild.id, ctx.guild.owner.id):
         try:
-            await ctx.send("I won't respond to commands by blacklisted users or in blacklisted guilds!")
+            await ctx.send("I won't respond to commands from blacklisted users or in blacklisted guilds!")
         except discord.Forbidden:
             pass
+        return False
+    if ctx.bot.config.command_disabled(ctx):
         return False
     return True
 
@@ -30,7 +32,10 @@ async def global_checks(ctx):
 async def bulbe_perm_check(ctx, permission):
     if await ctx.bot.is_owner(ctx.author):
         return True
-    return permission in ctx.bot.properties.bot_perms[ctx.author.id]
+    try:
+        return permission in ctx.bot.properties.bot_perms[ctx.author.id]
+    except KeyError:
+        return False
 
 
 def bulbe_perms(permission):
@@ -79,12 +84,15 @@ async def config_perm_check(ctx, permission):
     if await bulbe_perm_check(ctx, 'admin'):
         return True
     try:
-        roles_users = ctx.bot.config[ctx.guild.id]['roles'][permission]
+        roles_users = ctx.bot.config.get_config(ctx.guild.id)['roles'][permission]
     except AttributeError:
         ctx.bot.logger.debug(f"AttributeError encountered trying to access config for guild {ctx.guild.id if ctx.guild else None}.")
         return False
     except KeyError:
-        ctx.bot.logger.debug(f"KeyError encountered trying to access {permission} permission.")
+        ctx.bot.logger.debug(f"KeyError encountered trying to access {permission} permission for guild {ctx.guild.id if ctx.guild else None}.")
+        return False
+    except TypeError:
+        ctx.bot.logger.debug(f"TypeError encountered trying to access {permission} permission for guild {ctx.guild.id if ctx.guild else None}.")
         return False
     if not isinstance(roles_users, list):
         ctx.bot.logger.error(f"Command {ctx.command} tried to check {permission} but that is not a valid permission.")

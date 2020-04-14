@@ -8,6 +8,7 @@ import sys
 import copy
 import random
 import collections
+import aiohttp
 
 # custom imports
 from bots.revbot import RevBot
@@ -19,8 +20,11 @@ def prefix(bot, message, only_guild_prefix=False):
     default = bot.properties.prefix if bot.properties else bot.default_prefix
     if not message.guild:
         return commands.when_mentioned(bot, message) + [default]
-    config = bot.config.get_config(message.guild)
-    p = config['prefix']
+    if bot.config:
+        config = bot.config.get_config(message.guild)
+        p = config['prefix']
+    else:
+        p = None
     p = p if p else default
     if only_guild_prefix:
         return p
@@ -62,6 +66,18 @@ class Bulbe(RevBot):
             await self.process_commands(message)
         else:
             await self.process_direct_messages(message)
+
+    async def on_command_error(self, ctx, exception):
+        await super().on_command_error(ctx, exception)
+        if isinstance(exception, commands.CommandInvokeError):
+            self.logger.error(f"Error invoking command '{ctx.command.qualified_name}' / "
+                              f"author {ctx.author.id}, guild {ctx.guild.id if ctx.guild else None}, channel {ctx.channel.id}, message {ctx.message.id}"
+                              f"{exception.__class__.__name__}: {exception}")
+
+    async def on_command_completion(self, ctx):
+        self.logger.info(f"Command '{ctx.command.qualified_name}' invoked / "
+                         f"author {ctx.author.id}, guild {ctx.guild.id if ctx.guild else None}, channel {ctx.channel.id}, message {ctx.message.id}")
+        # await self.update_stats(ctx)
 
     async def lock(self):
         self._locked = True
@@ -167,12 +183,11 @@ class Bulbe(RevBot):
             await self.close(-1)
         self.logger.info('Loading cogs.')
         for cog in self.properties.cogs:
-            self.logger.info(f' -> {cog}')
             try:
                 self.load_extension(cog)
-                self.logger.info(f"    Loaded {cog}.")
+                self.logger.info(f"-> Loaded {cog}.")
             except Exception as e:
-                self.logger.error(f"    Failed to load extension {cog}.", exc_info=True)
+                self.logger.error(f"-> Failed to load extension {cog}.", exc_info=True)
         b = self.read_blacklists()
         if not b:
             self.logger.error("Error reading blacklists. Continuing without blacklists")

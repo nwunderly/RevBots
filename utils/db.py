@@ -3,7 +3,6 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
 from utils.utility import module_logger, stream_logger
-from authentication.authentication import aws
 
 
 class TableError(Exception):

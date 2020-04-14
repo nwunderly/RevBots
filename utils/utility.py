@@ -83,3 +83,15 @@ def stream_logger(name):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
     return logger
+
+
+async def fetch_previous_message(message):
+    use_next = False
+    async for m in message.channel.history(limit=10):
+        if use_next:
+            return m
+        if m.id == message.id:
+            use_next = True
+    return None
+
+

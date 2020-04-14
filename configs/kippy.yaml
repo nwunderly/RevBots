@@ -1,6 +1,6 @@
 
 name: kippy
-version: 2.1.0
+version: 2.1.2
 prefix: "="
 
 embed color: 2ecc71
@@ -10,7 +10,8 @@ invite permissions: 2110258423
 
 cogs:
   - cogs.bulbe.admin
-#  - cogs.moderation
+  - cogs.bulbe.config
+  - cogs.bulbe.devtools
 
 bot perms:
   options:
