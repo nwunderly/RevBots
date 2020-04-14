@@ -6,7 +6,7 @@ import datetime
 import discord
 from discord.ext import commands
 
-from utils import checks
+from utils import juan_checks
 from utils import converters
 
 
@@ -25,6 +25,7 @@ class Admin(commands.Cog):
                        f"Cogs: {', '.join(list(self.bot.cogs.keys()))}")
 
     @commands.command()
+    @juan_checks.is_admin()
     async def close(self, ctx):
         await ctx.send("Closing.")
         await self.bot.close()

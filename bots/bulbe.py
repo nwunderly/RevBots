@@ -120,7 +120,7 @@ class Bulbe(RevBot):
                           description=f"Prefix: `{p}`")
         return e
 
-    @tasks.loop(hours=1)
+    @tasks.loop(minutes=20)
     async def update_presence(self):
         activity = None
         name = random.choice(self.properties.activities)
