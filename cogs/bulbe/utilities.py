@@ -8,20 +8,102 @@ import discord
 from discord.ext import commands
 
 from utils.converters import FetchedUser
+from utils.utility import status
 
 
-status = {
-    'online': '<:status_online:699642822378258547>',
-    'idle': '<:status_idle:699642825087647784>',
-    'dnd': '<:status_dnd:699642826585145397>',
-    'offline': '<:status_offline:699642828309004420>',
-    'streaming': '<:status_streaming:699642830842363984>'
-}
+class PersistManager:
+    """Conveniently handles guilds' rolePersist data."""
+    def __init__(self, cog):
+        self.cog = cog
+        self.bot = cog.bot
+        self.table = cog.bot.table
+
+    async def get(self, member):
+        try:
+            data = self.table.get([member.guild.id, 'rolePersist'])
+            roles = data.pop(str(member.id))
+            self.table.put(data, [member.guild.id, 'rolePersist'])
+            return roles
+        except KeyError:
+            pass
+
+    async def put(self, member, role_ids):
+        try:
+            data = self.table.get([member.guild.id, 'rolePersist'])
+        except KeyError:
+            data = {}
+        data[str(member.id)] = role_ids
+        self.table.put(data, [member.guild.id, 'rolePersist'])
 
 
 class Utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.persist = PersistManager(self)
+
+    async def get_autorole_persist_configs(self, guild):
+        try:
+            config = self.bot.config.get_config(guild)
+            utilities = config['utilities']
+            return utilities.get('autorole'), utilities.get('persist')
+        except KeyError:
+            pass
+
+    async def get_persist_config(self, guild):
+        try:
+            config = self.bot.config.get_config(guild)
+            utilities = config['utilities']
+            return utilities.get('persist')
+        except KeyError:
+            pass
+
+    @staticmethod
+    async def validate_roles(member, role_ids):
+        roles = [member.guild.get_role(r) for r in role_ids]
+        roles = [r for r in roles if r is not None]
+        roles = [r for r in roles if r not in member.roles]
+        roles = [r for r in roles if r.position < member.guild.me.top_role.position]
+        return roles
+
+    async def assign_autoroles(self, member, autorole_config):
+        roles = await self.validate_roles(member, autorole_config)
+        if roles:
+            await member.add_roles(*roles, reason="Autorole")
+
+    async def restore_member(self, member, persist_config):
+        roles = await self.persist.get(member)
+
+        if not roles:
+            return
+
+        roles = [r for r in roles if r in persist_config]
+        roles = await self.validate_roles(member, roles)
+
+        if roles:
+            await member.add_roles(*roles, reason="Role persist")
+            self.bot.dispatch('member_restore', member, roles)
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        autorole, persist = await self.get_autorole_persist_configs(member.guild)
+
+        if autorole:
+            await self.assign_autoroles(member, autorole)
+
+        if persist:
+            await self.restore_member(member, persist)
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        persist = await self.get_persist_config(member.guild)
+
+        if not persist:
+            return
+
+        roles = [r.id for r in member.roles]
+        roles = [r for r in roles if r in persist]
+
+        await self.persist.put(member, roles)
 
     @commands.command()
     async def serverinfo(self, ctx):
@@ -54,7 +136,9 @@ class Utilities(commands.Cog):
         embed.set_author(name=str(user))
         embed.set_thumbnail(url=user.avatar_url)
 
-        embed.add_field(name='Status', value=status[str(user.status)], inline=False)
+        if isinstance(user, discord.Member):
+            embed.add_field(name='Status', value=status[str(user.status)], inline=False)
+
         embed.add_field(name='Shared Servers', value=f'{sum(g.get_member(user.id) is not None for g in self.bot.guilds)}', inline=False)
 
         if isinstance(user, discord.Member):
@@ -85,9 +169,9 @@ class Utilities(commands.Cog):
         """Some info about me!"""
         embed = self.bot.Embed()
         embed.set_author(name=str(self.bot.user), icon_url=self.bot.user.avatar_url)
-        embed.add_field(name="Creator", value=str(self.bot._nwunder))
         embed.add_field(name="Version", value=self.bot.properties.version)
         embed.add_field(name="Library", value='discord.py')
+        embed.add_field(name="OS", value={'linux': 'Ubuntu', 'win32': 'Windows'}[sys.platform])
 
         dt = datetime.datetime.now()-self.bot.started_at
         if dt.days >= 7:
@@ -102,11 +186,16 @@ class Utilities(commands.Cog):
             uptime = f"{dt.seconds} seconds"
 
         embed.add_field(name="Uptime", value=uptime)
-        embed.add_field(name="OS", value={'linux': 'Ubuntu', 'win32': 'Windows'}[sys.platform])
         memory = int(psutil.Process().memory_percent()/100*psutil.virtual_memory().available//10**6)
         embed.add_field(name="Memory", value=f"{memory} MB")
         embed.add_field(name="Servers", value=len(self.bot.guilds))
         embed.add_field(name="Users", value=len(self.bot.users))
+
+        embed.add_field(name="Source", value='[github](https://github.com/nwunderly/RevBots)')
+        embed.add_field(name="Add me!", value='[invite](https://discordapp.com/oauth2/authorize?client_id=548178287013396532&scope=bot&permissions=2134207679)')
+
+        embed.set_footer(text=f'bot by {self.bot._nwunder}', icon_url=self.bot._nwunder.avatar_url)
+        embed.timestamp = self.bot.user.created_at
         await ctx.send(embed=embed)
 
 

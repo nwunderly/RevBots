@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from utils import checks
+from utils.utility import yellow_tick, green_tick, red_tick
 
 
 class Manager(commands.Cog):
@@ -15,7 +16,7 @@ class Manager(commands.Cog):
     @commands.group()
     @checks.bulbe_perms('manager')
     async def guild(self, ctx):
-        pass
+        await ctx.send_help(self.guild)
 
     @guild.command()
     @checks.bulbe_perms('manager')
@@ -31,27 +32,30 @@ class Manager(commands.Cog):
     async def leave(self, ctx, guild_id: int = None):
         guild = self.bot.get_guild(guild_id) if guild_id else ctx.guild
         if not guild:
-            await ctx.send("Guild not found.")
+            await ctx.send(f"{red_tick} Guild not found.")
             return
-        await ctx.send(f"Are you sure you want me to leave {guild.name}?")
+        await ctx.send(f"{yellow_tick} Are you sure you want me to leave {guild.name}?")
         try:
             msg = await self.bot.wait_for('message', check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=5)
         except asyncio.TimeoutError:
-            await ctx.send("Timed out.")
+            await ctx.send(f"{red_tick} Timed out.")
             return
         if msg.content.lower().startswith('y'):
             msg_2 = await ctx.send("Leaving guild...")
             await guild.leave()
-            await msg_2.edit("Left guild!")
+            try:
+                await msg_2.edit(content=f"{green_tick} Left guild!")
+            except discord.NotFound:
+                pass
         else:
-            await ctx.send("Action canceled.")
+            await ctx.send(f"{red_tick} Action canceled.")
 
     @guild.command()
     @checks.bulbe_perms('manager')
     async def info(self, ctx, guild_id: int = None):
         guild = self.bot.get_guild(guild_id) if guild_id else ctx.guild
         if not guild:
-            await ctx.send("Guild not found.")
+            await ctx.send(f"{red_tick} Guild not found.")
             return
 
         def with_permission(permission):

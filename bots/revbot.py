@@ -138,8 +138,9 @@ class RevBot(commands.AutoShardedBot):
                     setattr(self, key, value)
 
     def Embed(self, **kwargs):
-        if not ("color" in kwargs.keys() or "colour" in kwargs.keys()):
+        if not ("color" not in kwargs.keys() or kwargs['color'] is None)  or ("colour" not in kwargs.keys() or kwargs['colour'] is None):
             kwargs['color'] = c if (c := getattr(self.properties, 'embed_color')) else discord.Color.blurple()
+
         return discord.Embed(**kwargs)
 
 

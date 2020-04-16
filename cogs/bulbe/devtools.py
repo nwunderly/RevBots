@@ -5,6 +5,7 @@ from discord.ext import commands
 from typing import Union, Optional
 
 from utils.converters import FetchedUser
+from utils.utility import red_tick
 
 
 class DevTools(commands.Cog):
@@ -14,6 +15,9 @@ class DevTools(commands.Cog):
     @commands.command()
     async def oauth(self, ctx, bot: Union[discord.User, FetchedUser], *perms):
         """Generates an invite link for a bot with the requested perms."""
+        if not bot.bot:
+            await ctx.send(f"{red_tick} `{bot}` isn't a bot!")
+            return
         if perms:
             p = None
             if len(perms) == 1:
@@ -34,8 +38,7 @@ class DevTools(commands.Cog):
             p = None
         link = discord.utils.oauth_url(bot.id, permissions=p)
         link = '<' + link + '>'
-        embed = self.bot.Embed(description=link)
-        await ctx.send(link)
+        await ctx.send(f"Invite link for `{bot}`:\n"+link)
 
     @commands.command()
     async def oauthperms(self, ctx, *perms):
@@ -64,7 +67,6 @@ class DevTools(commands.Cog):
                 await ctx.send(e)
                 return
             desc = f"These permissions will have permissions integer `{p.value}`"
-            embed = self.bot.Embed(description=desc)
             await ctx.send(desc)
 
     class FindIDArgs(commands.Converter):
@@ -79,9 +81,9 @@ class DevTools(commands.Cog):
                 raise commands.BadArgument
 
     @commands.group(name='id')
-    async def find_id(self, ctx, *, target: Union[FindIDArgs, discord.TextChannel, discord.VoiceChannel, discord.Role, discord.Member, discord.User]):
+    async def find_id(self, ctx, *, target: Union[FindIDArgs, discord.TextChannel, discord.VoiceChannel, discord.Role, discord.Member, discord.User, discord.PartialEmoji]):
         """Attempts to convert your query to a discord object and returns its id.
-        Search order: Special args, TextChannel, VoiceChannel, Role, Member, User.
+        Search order: Special args, TextChannel, VoiceChannel, Role, Member, User, Emoji.
         Special args: 'guild', 'channel', 'me'"""
         await ctx.send(f"`{(type(target)).__name__}` **{target.name}**:  `{target.id}`")
 

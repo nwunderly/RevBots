@@ -9,7 +9,7 @@ from google.cloud import translate_v2 as translate
 from google.oauth2.service_account import Credentials
 
 from authentication.authentication import cloud_creds
-from utils.utility import HOME_DIR, fetch_previous_message
+from utils.utility import HOME_DIR, fetch_previous_message, red_tick
 from utils.converters import Language
 
 
@@ -55,7 +55,7 @@ class Fun(commands.Cog):
                 yy = yy if len(yy := str(yy)) == 2 else yy[2:]
                 formatted_date = f"{yy}{int(mm):02d}{int(dd):02d}"
             except ValueError:
-                await ctx.send("Error converting date. Please make sure you're using a supported format.")
+                await ctx.send(f"{red_tick} Error converting date. Please make sure you're using a supported format.")
                 return
         url = f"https://apod.nasa.gov/apod/ap{formatted_date}.html"
         await ctx.send(url)
