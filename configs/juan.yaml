@@ -2,7 +2,7 @@
 # WHEN UPDATING THIS FILE BE SURE TO UPDATE THE NAMED TUPLE IN JUAN.PY
 
 name: juan
-version: 2.2.0
+version: 2.2.1
 prefix: ">"
 
 table: Juan
