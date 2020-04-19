@@ -1,6 +1,6 @@
 
 name: bulbe
-version: 2.1.4
+version: 2.1.5
 prefix: "+"
 
 embed color: 2ecc71
@@ -27,7 +27,7 @@ bot perms:
     - admin
 
 activities:
-  - playing version 2.1.4!
+  - playing version 2.1.5!
   - playing with other bulbasaurs
   - listening to bulbasaur sounds
   - playing bulbe games
