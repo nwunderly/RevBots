@@ -178,7 +178,7 @@ class Bulbe(RevBot):
             await self.close(-1)
         self.logger.info("Setting up DynamoDB table.")
         try:
-            self.table = Table('Bulbe')
+            self.table = Table(self._name.capitalize())
         except:
             self.logger.error("Error setting up table. Shutting down.")
             await self.close(-1)

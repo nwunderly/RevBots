@@ -3,8 +3,7 @@ from discord.ext import commands
 
 """
 
-2.1.5 -> fix logging, configurable permissions
-      -> LEAVE THIS OUT OF THIS GIT PUSH
+FIX LOGGING ASAP
 
 2.2.0 -> implement stats tracking (guild invite tracking and command stats)
 

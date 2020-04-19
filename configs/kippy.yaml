@@ -1,6 +1,6 @@
 
 name: kippy
-version: 2.1.4
+version: 2.2.0
 prefix: "="
 
 embed color: 2ecc71
@@ -15,6 +15,7 @@ cogs:
   - cogs.bulbe.fun
   - cogs.bulbe.manager
   - cogs.bulbe.utilities
+  - cogs.bulbe.stats
 
 bot perms:
   options:
