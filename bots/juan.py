@@ -15,7 +15,7 @@ from utils import juan_checks as checks
 from utils import utility
 
 
-properties_fields = ['name', 'version', 'prefix', 'table', 'guild', 'cogs', 'perms']
+properties_fields = ['name', 'version', 'prefix', 'table', 'guild', 'channels', 'cogs', 'perms']
 Properties = collections.namedtuple("Properties", properties_fields)
 
 
@@ -28,6 +28,11 @@ class Juandissimo(RevBot):
 
     async def on_ready(self):
         self.logger.info('Logged in as {0.user}.'.format(self))
+
+    async def on_message(self, message):
+        if message.guild.id != self.properties.guild:
+            return
+        await self.process_commands(message)
 
     async def setup(self):  # async method called before logging into discord
         self.logger.info("Setting up.")

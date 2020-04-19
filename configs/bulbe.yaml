@@ -35,13 +35,12 @@ activities:
   - playing pokemon
   - watching for +help
   - playing with +translate!
-  - playing \#001 in the dex, \#001 in the heart
   - playing epic bulbasaur moment
   - playing smh my head
   - playing ok, this is epic
 
 test messages:
-  - \#001 in the dex, \#001 in the heart
   - epic bulbasaur moment
+  - "#001 in the dex, #001 in the heart."
   - smh my head
   - ok, this is epic

@@ -120,4 +120,3 @@ class Module(commands.Converter):
             return cog
         else:
             raise commands.BadArgument("A module with this name could not be found.")
-

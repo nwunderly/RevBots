@@ -2,12 +2,16 @@
 # WHEN UPDATING THIS FILE BE SURE TO UPDATE THE NAMED TUPLE IN JUAN.PY
 
 name: juan
-version: 2.1.0
+version: 2.2.0
 prefix: ">"
 
 table: Juan
 
 guild: 576168356823040010
+
+channels:
+  general: 582398099176292354
+  logs: 685186998092431440
 
 cogs:
   - cogs.juan.admin

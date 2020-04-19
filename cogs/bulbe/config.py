@@ -16,21 +16,23 @@ DEFAULT_CONFIG = {
     # meta
     'prefix': None,
 
-    # 'ignored': {
-    #     'channels': list(),
-    #     'users': list(),
-    #     'roles': list(),
-    # },
+    'ignored': {
+        'channels': list(),
+        'users': list(),
+        'roles': list(),
+    },
 
     'disabled': {
         'modules': list(),
         'commands': list(),
     },
-    # 'roles': {
-    #     'administrator': list(),
-    #     'moderator': list(),
-    #     'muted': None,
-    # },
+
+    'roles': {
+        'administrator': list(),
+        'moderator': list(),
+    },
+
+    'muted-role': None,
 
     'utilities': {
         # 'claimable': dict(),
@@ -163,6 +165,35 @@ class ConfigManager:
             pass
         return False
 
+    def is_ignored(self, ctx):
+        """Returns True if the channel, user, or one of the user's roles should be ignored."""
+        ignored = self.get_config(ctx.guild)['ignored']
+        if ignored is None or not isinstance(ignored, dict):
+            return False
+        try:
+            if ctx.channel.id in ignored['channels']:
+                return True
+        except KeyError:
+            pass
+        except AttributeError:
+            pass
+        try:
+            if ctx.author.id in ignored['users']:
+                return True
+        except KeyError:
+            pass
+        except AttributeError:
+            pass
+        try:
+            for role in ctx.author.roles:
+                if role.id in ignored['roles']:
+                    return True
+        except KeyError:
+            pass
+        except AttributeError:
+            pass
+        return False
+
 
 class Config(commands.Cog):
     def __init__(self, bot):
@@ -226,20 +257,79 @@ class Config(commands.Cog):
         self.config.edit_section(ctx.guild.id, 'prefix', new_prefix)
         await ctx.send(f"{green_tick} Prefix set to `{new_prefix}`")
 
-    # todo
-    # @configure_bot.command()
-    # @checks.edit_config()
-    # async def ignore(self, ctx, target: Union[TextChannel, Member, Role] = None):
-    #     """Sets bot to ignore commands by certain users, users with certain roles, or in a certain channel."""
-    #     config = self.config.get_config(ctx.guild)
-    #     if not target:
-    #         pass
-    #     elif isinstance(target, TextChannel):
-    #         pass
-    #     elif isinstance(target, Member):
-    #         pass
-    #     elif isinstance(target, Role):
-    #         pass
+    @configure_bot.command()
+    @checks.edit_config()
+    async def ignore(self, ctx, target: Union[TextChannel, Member, Role]):
+        """Sets bot to ignore commands by certain users, users with certain roles, or in a certain channel."""
+        config = self.config.get_config(ctx.guild)
+        ignored = config['ignored']
+        if ignored is None:
+            ignored = dict()
+            ignored.update(DEFAULT_CONFIG['ignored'])
+
+        if isinstance(target, TextChannel):
+            if target.id in ignored['channels']:
+                await ctx.send(f"{red_tick} Channel `{target.name}` is already in ignore list!")
+                return
+            ignored['channels'].append(target.id)
+            self.config.edit_section(ctx.guild, 'ignored', ignored)
+            await ctx.send(f"{green_tick} I will ignore channel `{target.name}` in this guild.")
+            return
+
+        elif isinstance(target, Member):
+            if target.id in ignored['users']:
+                await ctx.send(f"{red_tick} User `{target.name}` is already in ignore list!")
+                return
+            ignored['channels'].append(target.id)
+            self.config.edit_section(ctx.guild, 'ignored', ignored)
+            await ctx.send(f"{green_tick} I will ignore user `{target.name}` in this guild.")
+            return
+
+        elif isinstance(target, Role):
+            if target.id in ignored['channels']:
+                await ctx.send(f"{red_tick} Role `{target.name}` is already in ignore list!")
+                return
+            ignored['channels'].append(target.id)
+            self.config.edit_section(ctx.guild, 'ignored', ignored)
+            await ctx.send(f"{green_tick} I will ignore role `{target.name}` in this guild.")
+            return
+
+    @configure_bot.command()
+    @checks.edit_config()
+    async def unignore(self, ctx, target: Union[TextChannel, Member, Role]):
+        """Removes a user, role, or channel from this guild's ignored list."""
+        config = self.config.get_config(ctx.guild)
+        ignored = config['ignored']
+        if ignored is None:
+            ignored = dict()
+            ignored.update(DEFAULT_CONFIG['ignored'])
+
+        if isinstance(target, TextChannel):
+            if target.id not in ignored['channels']:
+                await ctx.send(f"{red_tick} Channel `{target.name}` is not in ignore list!")
+                return
+            ignored['channels'].remove(target.id)
+            self.config.edit_section(ctx.guild, 'ignored', ignored)
+            await ctx.send(f"{green_tick} I will no longer ignore channel `{target.name}` in this guild.")
+            return
+
+        elif isinstance(target, Member):
+            if target.id not in ignored['users']:
+                await ctx.send(f"{red_tick} User `{target.name}` is not in ignore list!")
+                return
+            ignored['channels'].remove(target.id)
+            self.config.edit_section(ctx.guild, 'ignored', ignored)
+            await ctx.send(f"{green_tick} I will no longer ignore user `{target.name}` in this guild.")
+            return
+
+        elif isinstance(target, Role):
+            if target.id not in ignored['channels']:
+                await ctx.send(f"{red_tick} Role `{target.name}` is not in ignore list!")
+                return
+            ignored['channels'].remove(target.id)
+            self.config.edit_section(ctx.guild, 'ignored', ignored)
+            await ctx.send(f"{green_tick} I will no longer ignore role `{target.name}` in this guild.")
+            return
 
     @configure_bot.command()
     @checks.edit_config()
