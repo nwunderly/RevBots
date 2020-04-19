@@ -16,7 +16,8 @@ class Manager(commands.Cog):
     @commands.group()
     @checks.bulbe_perms('manager')
     async def guild(self, ctx):
-        await ctx.send_help(self.guild)
+        if ctx.invoked_subcommand is None:
+            await ctx.send_help(self.guild)
 
     @guild.command()
     @checks.bulbe_perms('manager')

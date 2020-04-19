@@ -1,6 +1,6 @@
 
 name: bulbe
-version: 2.1.4
+version: 2.1.5
 prefix: "+"
 
 embed color: 2ecc71
@@ -27,7 +27,8 @@ bot perms:
     - admin
 
 activities:
-  - playing version 2.1.4!
+  - playing version 2.1.5!
+  - "playing #001 in the dex, #001 in the heart."
   - playing with other bulbasaurs
   - listening to bulbasaur sounds
   - playing bulbe games
@@ -35,13 +36,12 @@ activities:
   - playing pokemon
   - watching for +help
   - playing with +translate!
-  - playing \#001 in the dex, \#001 in the heart
   - playing epic bulbasaur moment
   - playing smh my head
   - playing ok, this is epic
 
 test messages:
-  - \#001 in the dex, \#001 in the heart
   - epic bulbasaur moment
+  - "#001 in the dex, #001 in the heart."
   - smh my head
   - ok, this is epic
