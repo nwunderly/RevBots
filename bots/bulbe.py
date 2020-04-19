@@ -44,6 +44,7 @@ class Bulbe(RevBot):
         self._guild_blacklist = []
         self._locked = False
         self.table = None
+        self.help_command = commands.MinimalHelpCommand()
         self.add_check(checks.global_checks)
         self.logger.info(f'Initialization complete. [{name}]')
 

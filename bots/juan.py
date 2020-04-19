@@ -30,9 +30,9 @@ class Juandissimo(RevBot):
         self.logger.info('Logged in as {0.user}.'.format(self))
 
     async def on_message(self, message):
-        if message.guild.id != self.properties.guild:
+        if message.guild.id not in [self.properties.guild, 537043976562409482]:
             return
-        await self.process_commands(message)
+        await super().on_message(message)
 
     async def setup(self):  # async method called before logging into discord
         self.logger.info("Setting up.")
