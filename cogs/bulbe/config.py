@@ -280,16 +280,16 @@ class Config(commands.Cog):
             if target.id in ignored['users']:
                 await ctx.send(f"{red_tick} User `{target.name}` is already in ignore list!")
                 return
-            ignored['channels'].append(target.id)
+            ignored['users'].append(target.id)
             self.config.edit_section(ctx.guild, 'ignored', ignored)
             await ctx.send(f"{green_tick} I will ignore user `{target.name}` in this guild.")
             return
 
         elif isinstance(target, Role):
-            if target.id in ignored['channels']:
+            if target.id in ignored['roles']:
                 await ctx.send(f"{red_tick} Role `{target.name}` is already in ignore list!")
                 return
-            ignored['channels'].append(target.id)
+            ignored['roles'].append(target.id)
             self.config.edit_section(ctx.guild, 'ignored', ignored)
             await ctx.send(f"{green_tick} I will ignore role `{target.name}` in this guild.")
             return
@@ -317,16 +317,16 @@ class Config(commands.Cog):
             if target.id not in ignored['users']:
                 await ctx.send(f"{red_tick} User `{target.name}` is not in ignore list!")
                 return
-            ignored['channels'].remove(target.id)
+            ignored['users'].remove(target.id)
             self.config.edit_section(ctx.guild, 'ignored', ignored)
             await ctx.send(f"{green_tick} I will no longer ignore user `{target.name}` in this guild.")
             return
 
         elif isinstance(target, Role):
-            if target.id not in ignored['channels']:
+            if target.id not in ignored['roles']:
                 await ctx.send(f"{red_tick} Role `{target.name}` is not in ignore list!")
                 return
-            ignored['channels'].remove(target.id)
+            ignored['roles'].remove(target.id)
             self.config.edit_section(ctx.guild, 'ignored', ignored)
             await ctx.send(f"{green_tick} I will no longer ignore role `{target.name}` in this guild.")
             return

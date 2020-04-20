@@ -80,6 +80,7 @@ class OptionFlag(commands.Converter):
 
 class Language(commands.Converter):
     async def convert(self, ctx, argument):
+        argument = argument.lower()
 
         def update_langs():
             langs = ctx.cog.translator.get_languages(target_language='en')
