@@ -21,7 +21,7 @@ class Fun(commands.Cog):
         self.lang_cache = dict()
 
     @commands.command(name='translate', aliases=['t'])
-    async def _translate(self, ctx, lang: typing.Optional[Language] = 'en', *, text=None):
+    async def _translate(self, ctx, lang: typing.Optional[Language] = 'en', *, text: commands.clean_content = None):
         """Translates a message into a language of your choice.
         Defaults to English. If no text to translate is specified, uses the current channel's previous message."""
         if not lang:
