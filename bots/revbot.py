@@ -7,22 +7,26 @@ import asyncio
 import datetime
 import yaml
 import os
+import sys
+import traceback
+import sdnotify
 
 # custom imports
 from utils import utility
 from utils.utility import setup_logger
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 
 class RevBot(commands.AutoShardedBot):
     """
-
+    Base class for bots intended to be run as systemd services.
     """
     def __init__(self, name, command_prefix=None, logger=None, **kwargs):
         self._default_prefix = '__'
         command_prefix = command_prefix if command_prefix else self._default_prefix
         super().__init__(command_prefix, **kwargs)
+        self._sd_notifier = sdnotify.SystemdNotifier() if sys.platform == 'linux' else None
         self._revbot_version = VERSION
         self._name = name
         self.properties = None
@@ -30,6 +34,8 @@ class RevBot(commands.AutoShardedBot):
         self.logger = logger if logger else setup_logger(name)
         self.started_at = datetime.datetime.now()
         self.logger.debug(f"RevBot initialization complete. [{VERSION}]")
+        self.sd_notify('READY=1')
+        self.sd_notify('WATCHDOG=1')
 
     async def try_run(self, coro):
         try:
@@ -43,6 +49,7 @@ class RevBot(commands.AutoShardedBot):
         Override this to override discord.Client on_ready.
         """
         self.logger.info('Logged in as {0.user}.'.format(self))
+        self.watchdog.start()
 
     async def ping_response(self, channel):
         await channel.send(embed=discord.Embed(title=f"{self._name} ({datetime.datetime.now() - self.started_at})",
@@ -55,13 +62,21 @@ class RevBot(commands.AutoShardedBot):
             await self.ping_response(message.channel)
         await self.process_commands(message)
 
-    # @tasks.loop(seconds=1)
-    # async def watchdog(self):
-    #     systemd.daemon.notify("WATCHDOG=1")
+    async def on_error(self, event_method, *args, **kwargs):
+        self.logger.error(f"Ignoring exception in {event_method}:\n{traceback.format_exc()}")
 
-    # @staticmethod
-    # def sd_notify(arg):
-    #     systemd.daemon.notify(arg)
+    async def on_command_error(self, ctx, exception):
+        if isinstance(exception, commands.CommandInvokeError):
+            self.logger.error(f"Error invoking command '{ctx.command.qualified_name}' / "
+                              f"author {ctx.author.id}, guild {ctx.guild.id if ctx.guild else None}, channel {ctx.channel.id}, message {ctx.message.id}\n"
+                              f"{traceback.format_exception(type(exception), exception, exception.__traceback__)}")
+
+    @tasks.loop(seconds=5)
+    async def watchdog(self):
+        self.sd_notify("WATCHDOG=1")
+
+    def sd_notify(self, arg):
+        self._sd_notifier.notify(arg)
 
     async def setup(self):
         """
@@ -138,7 +153,7 @@ class RevBot(commands.AutoShardedBot):
                     setattr(self, key, value)
 
     def Embed(self, **kwargs):
-        if not ("color" not in kwargs.keys() or kwargs['color'] is None)  or ("colour" not in kwargs.keys() or kwargs['colour'] is None):
+        if not ("color" not in kwargs.keys() or kwargs['color'] is None) or ("colour" not in kwargs.keys() or kwargs['colour'] is None):
             kwargs['color'] = c if (c := getattr(self.properties, 'embed_color')) else discord.Color.blurple()
 
         return discord.Embed(**kwargs)

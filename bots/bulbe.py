@@ -2,13 +2,7 @@
 import discord
 from discord.ext import tasks, commands
 
-import yaml
-import os
-import sys
-import copy
 import random
-import collections
-import aiohttp
 
 # custom imports
 from bots.revbot import RevBot
@@ -67,13 +61,6 @@ class Bulbe(RevBot):
             await self.process_commands(message)
         else:
             await self.process_direct_messages(message)
-
-    async def on_command_error(self, ctx, exception):
-        await super().on_command_error(ctx, exception)
-        if isinstance(exception, commands.CommandInvokeError):
-            self.logger.error(f"Error invoking command '{ctx.command.qualified_name}' / "
-                              f"author {ctx.author.id}, guild {ctx.guild.id if ctx.guild else None}, channel {ctx.channel.id}, message {ctx.message.id}"
-                              f"{exception.__class__.__name__}: {exception}")
 
     async def on_command_completion(self, ctx):
         self.logger.info(f"Command '{ctx.command.qualified_name}' invoked / "
@@ -194,6 +181,12 @@ class Bulbe(RevBot):
             self.logger.error("Error reading blacklists. Continuing without blacklists")
 
     async def cleanup(self):
+        self.logger.info("Closing cog aiohttp clients.")
+        for name, cog in self.cogs.items():
+            try:
+                await cog.session.close()
+            except AttributeError:
+                pass
         self.logger.info("Dumping data.")
         self.write_blacklists()
 

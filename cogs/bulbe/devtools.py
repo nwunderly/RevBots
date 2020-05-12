@@ -4,6 +4,7 @@ from discord.ext import commands
 
 import inspect
 import aiohttp
+import asyncio
 from typing import Union
 from typing import Optional
 
@@ -16,9 +17,6 @@ class DevTools(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-
-    def cog_unload(self):
-        self.session.close()
 
     @commands.command()
     async def oauth(self, ctx, bot: Union[discord.User, FetchedUser], *perms):
@@ -112,7 +110,7 @@ class DevTools(commands.Cog):
     async def user(self, ctx, *, target):
         pass
 
-    @commands.command(name='source')
+    @commands.command(name='source', aliases=['src'])
     async def get_source(self, ctx, name=None):
         if not name:
             await ctx.send("<https://github.com/nwunderly/RevBots>")

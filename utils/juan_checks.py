@@ -68,7 +68,7 @@ async def juan_perm_check(ctx, permission):
 
     # checks perms associated with user id
     perms = ctx.bot.properties.perms
-    if ctx.author.id in perms.keys() and check(ctx.bot.perms[ctx.author.id]):
+    if ctx.author.id in perms.keys() and check(ctx.bot.properties.perms[ctx.author.id]):
         return True
 
     # checks perms associated with user's roles
