@@ -15,7 +15,7 @@ import sdnotify
 from utils import utility
 from utils.utility import setup_logger
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 
 class RevBot(commands.AutoShardedBot):
@@ -34,8 +34,9 @@ class RevBot(commands.AutoShardedBot):
         self.logger = logger if logger else setup_logger(name)
         self.started_at = datetime.datetime.now()
         self.logger.debug(f"RevBot initialization complete. [{VERSION}]")
-        self.sd_notify('READY=1')
-        self.sd_notify('WATCHDOG=1')
+        if self._sd_notifier:
+            self.sd_notify('READY=1')
+            self.sd_notify('WATCHDOG=1')
 
     async def try_run(self, coro):
         try:
@@ -49,7 +50,8 @@ class RevBot(commands.AutoShardedBot):
         Override this to override discord.Client on_ready.
         """
         self.logger.info('Logged in as {0.user}.'.format(self))
-        self.watchdog.start()
+        if self._sd_notifier:
+            self.watchdog.start()
 
     async def ping_response(self, channel):
         await channel.send(embed=discord.Embed(title=f"{self._name} ({datetime.datetime.now() - self.started_at})",

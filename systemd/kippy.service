@@ -1,7 +1,7 @@
 
 [Unit]
 
-Description=Dev Bulbe instance
+Description=Kippy
 
 StartLimitIntervalSec=5min
 StartLimitBurst=5
@@ -14,13 +14,18 @@ Environment=PYTHONUNBUFFERED=1
 
 Restart=on-failure
 
-TimeoutStopSec=30s
+TimeoutStopSec=10s
 
-#Type=notify
+Type=notify
 
 User=bots
 
-#WatchdogSec=30s
+WatchdogSec=30s
+
+KillSignal=SIGINT
+WatchdogSignal=SIGINT
+
+NotifyAccess=all
 
 
 [Install]
