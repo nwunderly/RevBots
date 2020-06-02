@@ -36,7 +36,8 @@ class Fun(commands.Cog):
         client = self.translator
         result = client.translate(text, target_language=lang)
         if isinstance(result, dict):
-            await ctx.send(f"(from {result['detectedSourceLanguage']}) {result['translatedText']}")
+            text = result['translatedText'].replace('&#39;', '\'')
+            await ctx.send(f"(from {result['detectedSourceLanguage']}) {text}")
 
     @commands.command()
     async def lmgtfy(self, ctx, *, search):
