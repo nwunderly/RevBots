@@ -56,9 +56,9 @@ class Fun(commands.Cog):
             try:
                 mmddyy = date.split('-')
                 if len(mmddyy) == 1:
-                    mmddyy = mmddyy.split('/')
+                    mmddyy = mmddyy[0].split('/')
                 if len(mmddyy) == 1:
-                    mmddyy = mmddyy.split(' ')
+                    mmddyy = mmddyy[0].split(' ')
                 if len(mmddyy) == 2:
                     mm, dd = [int(i) for i in mmddyy]
                     yy = 2020
