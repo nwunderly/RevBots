@@ -49,9 +49,9 @@ class Fun(commands.Cog):
     async def apod(self, ctx, *, date=None):
         """Astronomy picture of the day. Date format should be mm-dd-yyyy, mm/dd/yyyy."""
         if not date or (date and date.lower() == 'today'):
-            date = datetime.datetime.today()
+            date = datetime.date.today()
         elif date.lower() == 'yesterday':
-            date = datetime.datetime.today() - datetime.timedelta(days=1)
+            date = datetime.date.today() - datetime.timedelta(days=1)
         else:
             try:
                 mmddyy = date.split('-')
@@ -67,7 +67,7 @@ class Fun(commands.Cog):
                 else:
                     raise ValueError
                 date = datetime.date(year=yy, month=mm, day=dd)
-                if not datetime.date(year=2015, month=1, day=1) <= date <= datetime.datetime.today():
+                if not datetime.date(year=2015, month=1, day=1) <= date <= datetime.date.today():
                     raise ValueError
             except ValueError:
                 await ctx.send(f"{red_tick} Error converting date. Please make sure you're using a supported format.")
